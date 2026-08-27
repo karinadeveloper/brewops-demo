@@ -14,6 +14,10 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/kariaranelly/brew-ops/backend/config"
+	"github.com/kariaranelly/brew-ops/backend/internal/handler"
+	appmiddleware "github.com/kariaranelly/brew-ops/backend/internal/middleware"
+	"github.com/kariaranelly/brew-ops/backend/internal/repository"
+	"github.com/kariaranelly/brew-ops/backend/internal/service"
 )
 
 func main() {
@@ -54,10 +58,43 @@ func run() error {
 
 	app.Get("/health", healthHandler(pool))
 
-	// Route registration under this group begins in Session 2.
-	app.Group("/api/v1")
+	registerRoutes(app, cfg, pool)
 
 	return app.Listen(":" + cfg.Port)
+}
+
+func registerRoutes(app *fiber.App, cfg *config.Config, pool *pgxpool.Pool) {
+	jwtSecret := []byte(cfg.JWTSecret)
+
+	userRepo := repository.NewUserRepository(pool)
+	productRepo := repository.NewProductRepository(pool)
+
+	authService := service.NewAuthService(userRepo, jwtSecret, cfg.JWTAccessTokenTTL, cfg.JWTRefreshTokenTTL)
+	productService := service.NewProductService(productRepo)
+
+	authHandler := handler.NewAuthHandler(authService, cfg.IsDevelopment())
+	productHandler := handler.NewProductHandler(productService)
+
+	v1 := app.Group("/api/v1")
+
+	auth := v1.Group("/auth")
+	auth.Post("/login", authHandler.Login)
+	auth.Post("/refresh", authHandler.Refresh)
+	auth.Post("/register", authHandler.Register)
+
+	// Auth applies only to this group and any future protected group
+	// (sales, inventory, marketing, reports) — scoped explicitly rather
+	// than as a blanket v1.Use(), so it can never accidentally shadow
+	// /api/v1/auth/* based on route registration order.
+	products := v1.Group("/products", appmiddleware.Auth(jwtSecret))
+	products.Get("/", productHandler.List)
+	products.Post("/", productHandler.Create)
+	products.Get("/trash", productHandler.Trash)
+	products.Get("/low-stock", productHandler.LowStock)
+	products.Get("/:id", productHandler.Get)
+	products.Patch("/:id", productHandler.Update)
+	products.Delete("/:id", productHandler.Delete)
+	products.Post("/:id/restore", productHandler.Restore)
 }
 
 func healthHandler(pool *pgxpool.Pool) fiber.Handler {

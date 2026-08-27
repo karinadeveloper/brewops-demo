@@ -13,7 +13,8 @@ import (
 // Config holds all runtime configuration for the BrewOps backend.
 type Config struct {
 	// Server
-	Port string
+	Port        string
+	Environment string
 
 	// Database
 	DatabaseURL string
@@ -39,7 +40,10 @@ type Config struct {
 // if any required variable is missing or malformed.
 func Load() (*Config, error) {
 	cfg := &Config{
-		Port:                 getEnv("PORT", "8080"),
+		Port: getEnv("PORT", "8080"),
+		// Defaults to "production" (fail closed): APP_ENV must be set to
+		// "development" explicitly to expose POST /api/v1/auth/register.
+		Environment:          getEnv("APP_ENV", "production"),
 		DatabaseURL:          os.Getenv("DATABASE_URL"),
 		JWTSecret:            os.Getenv("JWT_SECRET"),
 		OpenAIAPIKey:         os.Getenv("OPENAI_API_KEY"),
@@ -56,19 +60,28 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
-	accessTTL, err := parseDuration("JWT_ACCESS_TOKEN_TTL", "15m")
+	// 8h access / 30d refresh — see the "JWT token lifetimes" note in
+	// CLAUDE.md's tech stack table for why this differs from the
+	// 15min/7days industry default.
+	accessTTL, err := parseDuration("JWT_ACCESS_TOKEN_TTL", "8h")
 	if err != nil {
 		return nil, err
 	}
 	cfg.JWTAccessTokenTTL = accessTTL
 
-	refreshTTL, err := parseDuration("JWT_REFRESH_TOKEN_TTL", "168h")
+	refreshTTL, err := parseDuration("JWT_REFRESH_TOKEN_TTL", "720h")
 	if err != nil {
 		return nil, err
 	}
 	cfg.JWTRefreshTokenTTL = refreshTTL
 
 	return cfg, nil
+}
+
+// IsDevelopment reports whether the server is running in development mode,
+// the only mode where POST /api/v1/auth/register is exposed.
+func (c *Config) IsDevelopment() bool {
+	return c.Environment == "development"
 }
 
 func getEnv(key, fallback string) string {

@@ -6,10 +6,22 @@ package repository
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
+	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
+	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	GetProductByID(ctx context.Context, id pgtype.UUID) (Product, error)
+	GetTrashedProductByID(ctx context.Context, id pgtype.UUID) (Product, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	ListLowStockProducts(ctx context.Context) ([]Product, error)
+	ListProducts(ctx context.Context, arg ListProductsParams) ([]Product, error)
+	ListTrashedProducts(ctx context.Context) ([]ListTrashedProductsRow, error)
+	RestoreProduct(ctx context.Context, id pgtype.UUID) (Product, error)
+	SoftDeleteProduct(ctx context.Context, arg SoftDeleteProductParams) (int64, error)
+	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
 }
 
 var _ Querier = (*Queries)(nil)
