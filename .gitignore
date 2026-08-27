@@ -1,0 +1,32 @@
+# Claude Code — nunca público
+CLAUDE.md
+.claude/
+
+# Entorno
+.env
+
+# Go
+*.exe
+*.test
+*.out
+/backend/tmp/
+
+# Node / Frontend
+node_modules/
+dist/
+dev-dist/
+*.local
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,4 @@
+# Local development overrides. Empty for now — docker-compose.yml already
+# publishes Postgres on DB_PORT and persists data in a named volume, which is
+# sufficient for local development. Add service overrides here (e.g. bind
+# mounts for hot reload) as they become needed in later sessions.
