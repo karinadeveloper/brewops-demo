@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -112,7 +113,7 @@ func TestLowStockFlow_SaleReducesStockToOrBelowMinStock_AppearsInLowStock(t *tes
 	}
 
 	// Act — sell 5 units, leaving current_stock=5 <= min_stock=8.
-	_, err = sales.Create(context.Background(), service.CreateSaleInput{
+	_, _, err = sales.Create(context.Background(), service.CreateSaleInput{
 		Items:         []domain.SaleItemInput{{ProductID: product.ID, Quantity: 5, UnitPriceCents: 1500}},
 		PaymentMethod: "CASH",
 		CreatedBy:     userID,
@@ -157,7 +158,7 @@ func TestSaleCreate_InsufficientStockItem_RollsBackEverything(t *testing.T) {
 	shortProduct := createTestProduct(t, products, userID, 3, 1)
 
 	// Act
-	_, err := sales.Create(context.Background(), service.CreateSaleInput{
+	_, _, err := sales.Create(context.Background(), service.CreateSaleInput{
 		Items: []domain.SaleItemInput{
 			{ProductID: okProduct.ID, Quantity: 10, UnitPriceCents: 1000},
 			{ProductID: shortProduct.ID, Quantity: 100, UnitPriceCents: 1000}, // only 3 in stock
@@ -255,7 +256,7 @@ func TestSaleCreate_ProductVersionChangesMidTransaction_ReturnsOptimisticLockCon
 	// until we commit it below.
 	resultCh := make(chan error, 1)
 	go func() {
-		_, err := sales.Create(context.Background(), service.CreateSaleInput{
+		_, _, err := sales.Create(context.Background(), service.CreateSaleInput{
 			Items:         []domain.SaleItemInput{{ProductID: product.ID, Quantity: 1, UnitPriceCents: 1000}},
 			PaymentMethod: "CASH",
 			CreatedBy:     userID,
@@ -285,5 +286,208 @@ func TestSaleCreate_ProductVersionChangesMidTransaction_ReturnsOptimisticLockCon
 	}
 	if reloaded.CurrentStock != 19 {
 		t.Fatalf("expected only the blocking transaction's decrement to have applied (19), got %d — the conflicting sale was not fully rolled back", reloaded.CurrentStock)
+	}
+}
+
+// TestSaleCreate_NewIdempotencyKey_CreatesSaleNormally proves an unseen
+// idempotency_key doesn't change the ordinary creation path at all.
+func TestSaleCreate_NewIdempotencyKey_CreatesSaleNormally(t *testing.T) {
+	// Arrange
+	pool := testPool(t)
+	userID := createTestUser(t, pool)
+	products := service.NewProductService(repository.NewProductRepository(pool))
+	sales := service.NewSaleService(repository.NewSaleRepository(pool))
+	product := createTestProduct(t, products, userID, 10, 0)
+	key := uuid.New()
+
+	// Act
+	sale, existed, err := sales.Create(context.Background(), service.CreateSaleInput{
+		Items:          []domain.SaleItemInput{{ProductID: product.ID, Quantity: 2, UnitPriceCents: 1500}},
+		PaymentMethod:  "CASH",
+		CreatedBy:      userID,
+		IdempotencyKey: &key,
+	})
+
+	// Assert
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if existed {
+		t.Fatal("expected existed=false for a brand-new idempotency key")
+	}
+	reloaded, err := products.Get(context.Background(), product.ID)
+	if err != nil {
+		t.Fatalf("failed to reload product: %v", err)
+	}
+	if reloaded.CurrentStock != 8 {
+		t.Fatalf("expected current_stock=8 after selling 2 of 10, got %d", reloaded.CurrentStock)
+	}
+	if sale.ID == uuid.Nil {
+		t.Fatal("expected a persisted sale id")
+	}
+}
+
+// TestSaleCreate_RepeatedIdempotencyKey_ReturnsExistingSaleWithoutDuplicateRowOrExtraStockDecrement
+// is the core guarantee this patch exists for: a retried POST /sales with
+// the same idempotency_key must not create a second sale row or decrement
+// stock a second time — it must return the original sale.
+func TestSaleCreate_RepeatedIdempotencyKey_ReturnsExistingSaleWithoutDuplicateRowOrExtraStockDecrement(t *testing.T) {
+	// Arrange
+	pool := testPool(t)
+	userID := createTestUser(t, pool)
+	products := service.NewProductService(repository.NewProductRepository(pool))
+	sales := service.NewSaleService(repository.NewSaleRepository(pool))
+	product := createTestProduct(t, products, userID, 10, 0)
+	key := uuid.New()
+	input := service.CreateSaleInput{
+		Items:          []domain.SaleItemInput{{ProductID: product.ID, Quantity: 3, UnitPriceCents: 1500}},
+		PaymentMethod:  "CASH",
+		CreatedBy:      userID,
+		IdempotencyKey: &key,
+	}
+
+	// Act — the same request, sent twice, exactly like a client retry after
+	// a lost response.
+	first, firstExisted, err := sales.Create(context.Background(), input)
+	if err != nil {
+		t.Fatalf("expected first call to succeed, got %v", err)
+	}
+	second, secondExisted, err := sales.Create(context.Background(), input)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("expected the retried call to succeed as a no-op, got %v", err)
+	}
+	if firstExisted {
+		t.Fatal("expected the first call to report existed=false")
+	}
+	if !secondExisted {
+		t.Fatal("expected the retried call to report existed=true")
+	}
+	if second.ID != first.ID {
+		t.Fatalf("expected the retried call to return the original sale %v, got %v", first.ID, second.ID)
+	}
+
+	var saleCount int
+	if err := pool.QueryRow(context.Background(), `SELECT count(*) FROM sales WHERE idempotency_key = $1`, key).Scan(&saleCount); err != nil {
+		t.Fatalf("failed to count sales by idempotency_key: %v", err)
+	}
+	if saleCount != 1 {
+		t.Fatalf("expected exactly 1 sale row for this idempotency key, got %d", saleCount)
+	}
+
+	reloaded, err := products.Get(context.Background(), product.ID)
+	if err != nil {
+		t.Fatalf("failed to reload product: %v", err)
+	}
+	if reloaded.CurrentStock != 7 {
+		t.Fatalf("expected current_stock=7 (decremented only once, 10-3), got %d", reloaded.CurrentStock)
+	}
+}
+
+// TestSaleCreate_ConcurrentSameIdempotencyKey_OnlyOneInsertsTheOtherRecoversExistingSale
+// covers the race CLAUDE.md describes: two requests carrying the same key
+// arriving almost simultaneously. The unique index is the final arbiter —
+// exactly one goroutine's INSERT succeeds, and the loser's unique-violation
+// is caught and turned into a lookup of the winner's row, never a
+// propagated DB error.
+func TestSaleCreate_ConcurrentSameIdempotencyKey_OnlyOneInsertsTheOtherRecoversExistingSale(t *testing.T) {
+	// Arrange
+	pool := testPool(t)
+	userID := createTestUser(t, pool)
+	products := service.NewProductService(repository.NewProductRepository(pool))
+	sales := service.NewSaleService(repository.NewSaleRepository(pool))
+	product := createTestProduct(t, products, userID, 100, 0)
+	key := uuid.New()
+	input := service.CreateSaleInput{
+		Items:          []domain.SaleItemInput{{ProductID: product.ID, Quantity: 1, UnitPriceCents: 1000}},
+		PaymentMethod:  "CASH",
+		CreatedBy:      userID,
+		IdempotencyKey: &key,
+	}
+
+	// Act — fire both requests at once.
+	var wg sync.WaitGroup
+	results := make([]*domain.Sale, 2)
+	existedFlags := make([]bool, 2)
+	errs := make([]error, 2)
+	wg.Add(2)
+	for i := range 2 {
+		go func(i int) {
+			defer wg.Done()
+			results[i], existedFlags[i], errs[i] = sales.Create(context.Background(), input)
+		}(i)
+	}
+	wg.Wait()
+
+	// Assert
+	for i, err := range errs {
+		if err != nil {
+			t.Fatalf("expected no error from goroutine %d, got %v", i, err)
+		}
+	}
+	if results[0].ID != results[1].ID {
+		t.Fatalf("expected both goroutines to agree on one sale, got %v and %v", results[0].ID, results[1].ID)
+	}
+	if existedFlags[0] == existedFlags[1] {
+		t.Fatalf("expected exactly one goroutine to win (existed=false) and the other to lose (existed=true), got %v and %v", existedFlags[0], existedFlags[1])
+	}
+
+	var saleCount int
+	if err := pool.QueryRow(context.Background(), `SELECT count(*) FROM sales WHERE idempotency_key = $1`, key).Scan(&saleCount); err != nil {
+		t.Fatalf("failed to count sales by idempotency_key: %v", err)
+	}
+	if saleCount != 1 {
+		t.Fatalf("expected exactly 1 sale row despite the concurrent attempts, got %d", saleCount)
+	}
+
+	reloaded, err := products.Get(context.Background(), product.ID)
+	if err != nil {
+		t.Fatalf("failed to reload product: %v", err)
+	}
+	if reloaded.CurrentStock != 99 {
+		t.Fatalf("expected current_stock=99 (decremented exactly once, 100-1), got %d", reloaded.CurrentStock)
+	}
+}
+
+// TestSaleCreate_NoIdempotencyKey_BehavesExactlyAsBefore proves compatibility
+// with any caller that doesn't send an idempotency_key: each call is an
+// independent sale, just like before this patch.
+func TestSaleCreate_NoIdempotencyKey_BehavesExactlyAsBefore(t *testing.T) {
+	// Arrange
+	pool := testPool(t)
+	userID := createTestUser(t, pool)
+	products := service.NewProductService(repository.NewProductRepository(pool))
+	sales := service.NewSaleService(repository.NewSaleRepository(pool))
+	product := createTestProduct(t, products, userID, 10, 0)
+	input := service.CreateSaleInput{
+		Items:         []domain.SaleItemInput{{ProductID: product.ID, Quantity: 1, UnitPriceCents: 1000}},
+		PaymentMethod: "CASH",
+		CreatedBy:     userID,
+	}
+
+	// Act
+	first, firstExisted, err := sales.Create(context.Background(), input)
+	if err != nil {
+		t.Fatalf("expected first call to succeed, got %v", err)
+	}
+	second, secondExisted, err := sales.Create(context.Background(), input)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("expected second call to succeed, got %v", err)
+	}
+	if firstExisted || secondExisted {
+		t.Fatal("expected existed=false for both calls when no idempotency_key is sent")
+	}
+	if first.ID == second.ID {
+		t.Fatal("expected two independent sales, not the same one, when no idempotency_key is sent")
+	}
+	reloaded, err := products.Get(context.Background(), product.ID)
+	if err != nil {
+		t.Fatalf("failed to reload product: %v", err)
+	}
+	if reloaded.CurrentStock != 8 {
+		t.Fatalf("expected current_stock=8 after two separate 1-unit sales (10-1-1), got %d", reloaded.CurrentStock)
 	}
 }

@@ -82,17 +82,17 @@ func TestCreate_MultipleValidItems_ComputesTotalIgnoringAnyClientTotal(t *testin
 	productA, productB, createdBy := uuid.New(), uuid.New(), uuid.New()
 	var gotSale domain.Sale
 	sales := &mockSaleRepository{
-		createFunc: func(_ context.Context, sale *domain.Sale, _ uuid.UUID) error {
+		createFunc: func(_ context.Context, sale *domain.Sale, _ uuid.UUID) (bool, error) {
 			gotSale = *sale
 			sale.ID = uuid.New()
-			return nil
+			return false, nil
 		},
 	}
 	svc := NewSaleService(sales)
 
 	// Act — CreateSaleInput has no total_cents field at all, so there is no
 	// client-submitted total for the service to even consider trusting.
-	result, err := svc.Create(context.Background(), CreateSaleInput{
+	result, existed, err := svc.Create(context.Background(), CreateSaleInput{
 		Items: []domain.SaleItemInput{
 			{ProductID: productA, Quantity: 2, UnitPriceCents: 4500},
 			{ProductID: productB, Quantity: 1, UnitPriceCents: 2000},
@@ -104,6 +104,9 @@ func TestCreate_MultipleValidItems_ComputesTotalIgnoringAnyClientTotal(t *testin
 	// Assert
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
+	}
+	if existed {
+		t.Fatal("expected existed=false for a freshly created sale")
 	}
 	const wantTotal = 2*4500 + 2000
 	if gotSale.TotalCents != wantTotal {
@@ -121,19 +124,19 @@ func TestCreate_ItemWithInsufficientStock_FailsCompletelyWithoutRepositorySideEf
 	// Arrange
 	callCount := 0
 	sales := &mockSaleRepository{
-		createFunc: func(_ context.Context, _ *domain.Sale, _ uuid.UUID) error {
+		createFunc: func(_ context.Context, _ *domain.Sale, _ uuid.UUID) (bool, error) {
 			callCount++
 			// Simulates SaleRepository.Create's real behavior: the whole DB
 			// transaction rolled back, so it returns the error and mutates
 			// nothing — no Sale, no SaleItem, no InventoryMovement, no
 			// stock change persisted anywhere.
-			return domain.ErrInsufficientStock
+			return false, domain.ErrInsufficientStock
 		},
 	}
 	svc := NewSaleService(sales)
 
 	// Act
-	_, err := svc.Create(context.Background(), CreateSaleInput{
+	_, _, err := svc.Create(context.Background(), CreateSaleInput{
 		Items: []domain.SaleItemInput{
 			{ProductID: uuid.New(), Quantity: 5, UnitPriceCents: 1000},
 			{ProductID: uuid.New(), Quantity: 999, UnitPriceCents: 500},
@@ -154,14 +157,14 @@ func TestCreate_ItemWithInsufficientStock_FailsCompletelyWithoutRepositorySideEf
 func TestCreate_ConcurrentSaleChangedProductVersion_ReturnsErrOptimisticLockConflict(t *testing.T) {
 	// Arrange
 	sales := &mockSaleRepository{
-		createFunc: func(_ context.Context, _ *domain.Sale, _ uuid.UUID) error {
-			return domain.ErrOptimisticLockConflict
+		createFunc: func(_ context.Context, _ *domain.Sale, _ uuid.UUID) (bool, error) {
+			return false, domain.ErrOptimisticLockConflict
 		},
 	}
 	svc := NewSaleService(sales)
 
 	// Act
-	_, err := svc.Create(context.Background(), CreateSaleInput{
+	_, _, err := svc.Create(context.Background(), CreateSaleInput{
 		Items:         []domain.SaleItemInput{{ProductID: uuid.New(), Quantity: 1, UnitPriceCents: 1000}},
 		PaymentMethod: "CASH",
 		CreatedBy:     uuid.New(),
@@ -176,15 +179,15 @@ func TestCreate_ConcurrentSaleChangedProductVersion_ReturnsErrOptimisticLockConf
 func TestCreate_InvalidInput_ReturnsValidationErrorWithoutCallingRepository(t *testing.T) {
 	// Arrange
 	sales := &mockSaleRepository{
-		createFunc: func(_ context.Context, _ *domain.Sale, _ uuid.UUID) error {
+		createFunc: func(_ context.Context, _ *domain.Sale, _ uuid.UUID) (bool, error) {
 			t.Fatal("repository Create should not be called when input validation fails")
-			return nil
+			return false, nil
 		},
 	}
 	svc := NewSaleService(sales)
 
 	// Act
-	_, err := svc.Create(context.Background(), CreateSaleInput{
+	_, _, err := svc.Create(context.Background(), CreateSaleInput{
 		Items:         []domain.SaleItemInput{},
 		PaymentMethod: "CASH",
 		CreatedBy:     uuid.New(),
@@ -193,6 +196,45 @@ func TestCreate_InvalidInput_ReturnsValidationErrorWithoutCallingRepository(t *t
 	// Assert
 	if !errors.Is(err, domain.ErrEmptySale) {
 		t.Fatalf("expected ErrEmptySale, got %v", err)
+	}
+}
+
+func TestCreate_RepositoryReportsIdempotentMatch_ReturnsExistedTrueAndTheExistingSale(t *testing.T) {
+	// Arrange — simulates SaleRepository.Create finding a sale that was
+	// already persisted by a prior attempt carrying the same idempotency
+	// key: it returns existed=true and populates sale from the existing
+	// record instead of creating anything new.
+	key := uuid.New()
+	existingID := uuid.New()
+	sales := &mockSaleRepository{
+		createFunc: func(_ context.Context, sale *domain.Sale, _ uuid.UUID) (bool, error) {
+			if sale.IdempotencyKey == nil || *sale.IdempotencyKey != key {
+				t.Fatalf("expected repository to receive idempotency key %v, got %v", key, sale.IdempotencyKey)
+			}
+			sale.ID = existingID
+			sale.TotalCents = 9999
+			return true, nil
+		},
+	}
+	svc := NewSaleService(sales)
+
+	// Act
+	result, existed, err := svc.Create(context.Background(), CreateSaleInput{
+		Items:          []domain.SaleItemInput{{ProductID: uuid.New(), Quantity: 1, UnitPriceCents: 1000}},
+		PaymentMethod:  "CASH",
+		CreatedBy:      uuid.New(),
+		IdempotencyKey: &key,
+	})
+
+	// Assert
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if !existed {
+		t.Fatal("expected existed=true for an idempotent match")
+	}
+	if result.ID != existingID {
+		t.Fatalf("expected the existing sale %v to be returned, got %v", existingID, result.ID)
 	}
 }
 

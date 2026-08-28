@@ -57,6 +57,11 @@ type CreateSaleInput struct {
 	Items         []domain.SaleItemInput
 	PaymentMethod string
 	CreatedBy     uuid.UUID
+	// IdempotencyKey is optional. The frontend always sends one (generated
+	// when the user confirms the sale, reused across retries), but it's not
+	// required at the validation level for compatibility with any other
+	// caller of this endpoint. See CLAUDE.md's Business rules.
+	IdempotencyKey *uuid.UUID
 }
 
 // Create validates the request, computes total_cents server-side, and
@@ -65,14 +70,20 @@ type CreateSaleInput struct {
 // — and the optimistic-concurrency guard against a concurrent sale of the
 // same product — happens inside SaleRepository.Create's single transaction,
 // not here.
-func (s *SaleService) Create(ctx context.Context, in CreateSaleInput) (*domain.Sale, error) {
+//
+// existed reports whether in.IdempotencyKey matched a sale that already
+// existed (active or soft-deleted): the caller (the HTTP handler) uses this
+// to respond 200 instead of 201, signaling an idempotent no-op rather than
+// a freshly created sale.
+func (s *SaleService) Create(ctx context.Context, in CreateSaleInput) (sale *domain.Sale, existed bool, err error) {
 	if err := validateSaleInput(in.Items, in.PaymentMethod); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	sale := &domain.Sale{
-		TotalCents:    computeTotalCents(in.Items),
-		PaymentMethod: in.PaymentMethod,
+	sale = &domain.Sale{
+		IdempotencyKey: in.IdempotencyKey,
+		TotalCents:     computeTotalCents(in.Items),
+		PaymentMethod:  in.PaymentMethod,
 	}
 	sale.Items = make([]domain.SaleItem, len(in.Items))
 	for i, item := range in.Items {
@@ -83,10 +94,11 @@ func (s *SaleService) Create(ctx context.Context, in CreateSaleInput) (*domain.S
 		}
 	}
 
-	if err := s.sales.Create(ctx, sale, in.CreatedBy); err != nil {
-		return nil, fmt.Errorf("sale: create: %w", err)
+	existed, err = s.sales.Create(ctx, sale, in.CreatedBy)
+	if err != nil {
+		return nil, false, fmt.Errorf("sale: create: %w", err)
 	}
-	return sale, nil
+	return sale, existed, nil
 }
 
 func (s *SaleService) Get(ctx context.Context, id uuid.UUID) (*domain.Sale, error) {

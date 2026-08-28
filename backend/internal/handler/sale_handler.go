@@ -73,8 +73,9 @@ type createSaleItemRequest struct {
 }
 
 type createSaleRequest struct {
-	Items         []createSaleItemRequest `json:"items"`
-	PaymentMethod string                  `json:"payment_method"`
+	Items          []createSaleItemRequest `json:"items"`
+	PaymentMethod  string                  `json:"payment_method"`
+	IdempotencyKey *string                 `json:"idempotency_key,omitempty"`
 }
 
 func (h *SaleHandler) Create(c *fiber.Ctx) error {
@@ -101,16 +102,33 @@ func (h *SaleHandler) Create(c *fiber.Ctx) error {
 		}
 	}
 
-	sale, err := h.sales.Create(c.Context(), service.CreateSaleInput{
-		Items:         items,
-		PaymentMethod: req.PaymentMethod,
-		CreatedBy:     userID,
+	var idempotencyKey *uuid.UUID
+	if req.IdempotencyKey != nil && *req.IdempotencyKey != "" {
+		key, err := uuid.Parse(*req.IdempotencyKey)
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "invalid idempotency_key")
+		}
+		idempotencyKey = &key
+	}
+
+	sale, existed, err := h.sales.Create(c.Context(), service.CreateSaleInput{
+		Items:          items,
+		PaymentMethod:  req.PaymentMethod,
+		CreatedBy:      userID,
+		IdempotencyKey: idempotencyKey,
 	})
 	if err != nil {
 		return mapSaleError(err)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(toSaleResponse(*sale))
+	// existed=true means idempotencyKey matched a sale already created by a
+	// prior attempt — nothing new was persisted, so this is a 200 (an
+	// idempotent no-op), not a 201 (a fresh creation).
+	status := fiber.StatusCreated
+	if existed {
+		status = fiber.StatusOK
+	}
+	return c.Status(status).JSON(toSaleResponse(*sale))
 }
 
 func (h *SaleHandler) List(c *fiber.Ctx) error {

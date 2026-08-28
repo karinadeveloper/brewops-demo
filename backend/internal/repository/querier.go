@@ -33,6 +33,9 @@ type Querier interface {
 	GetRevenueByDay(ctx context.Context, arg GetRevenueByDayParams) ([]GetRevenueByDayRow, error)
 	GetRevenueTotal(ctx context.Context, arg GetRevenueTotalParams) (int64, error)
 	GetSaleByID(ctx context.Context, id pgtype.UUID) (Sale, error)
+	// Includes soft-deleted sales deliberately: the goal is to never reprocess
+	// the same client attempt, regardless of what later happened to the sale.
+	GetSaleByIdempotencyKey(ctx context.Context, idempotencyKey pgtype.UUID) (Sale, error)
 	GetTrashedInventoryMovementByID(ctx context.Context, id pgtype.UUID) (InventoryMovement, error)
 	GetTrashedProductByID(ctx context.Context, id pgtype.UUID) (Product, error)
 	GetTrashedSaleByID(ctx context.Context, id pgtype.UUID) (Sale, error)

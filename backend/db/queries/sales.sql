@@ -1,6 +1,6 @@
 -- name: CreateSale :one
-INSERT INTO sales (total_cents, payment_method, created_by)
-VALUES ($1, $2, $3)
+INSERT INTO sales (total_cents, payment_method, created_by, idempotency_key)
+VALUES ($1, $2, $3, $4)
 RETURNING *;
 
 -- name: CreateSaleItem :one
@@ -25,6 +25,12 @@ RETURNING *;
 -- name: GetSaleByID :one
 SELECT * FROM sales
 WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: GetSaleByIdempotencyKey :one
+-- Includes soft-deleted sales deliberately: the goal is to never reprocess
+-- the same client attempt, regardless of what later happened to the sale.
+SELECT * FROM sales
+WHERE idempotency_key = $1;
 
 -- name: GetTrashedSaleByID :one
 SELECT * FROM sales

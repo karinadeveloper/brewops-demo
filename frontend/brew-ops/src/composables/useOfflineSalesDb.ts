@@ -26,6 +26,12 @@ export interface PendingSale {
   id: string
   items: PendingSaleItem[]
   payment_method: 'CASH' | 'TRANSFER'
+  // Generated once, when the user confirms the sale (see PointOfSaleView),
+  // and persisted here so every sync attempt for this record — including
+  // every retry useSaleSync makes — sends the exact same value. Never
+  // regenerate this per attempt; see useSaleSync's syncOne for why that
+  // matters.
+  idempotencyKey: string
   // Local creation timestamp (ISO string) — used to sync in creation
   // order and to display in the history list.
   createdAt: string

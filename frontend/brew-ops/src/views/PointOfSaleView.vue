@@ -58,16 +58,23 @@ async function confirmSale() {
     unit_price_cents: item.unitPriceCents,
   }))
 
+  // Generated once per confirmation, here — not at sync time — so it
+  // survives a lost response and every retry of this same sale (online
+  // fetch failure re-queued below, or a later "Reintentar") carries the
+  // same key. The backend uses it to detect and no-op a duplicate attempt
+  // instead of recording the sale twice. See CLAUDE.md's Business rules.
+  const idempotencyKey = crypto.randomUUID()
+
   submitError.value = ''
   isSubmitting.value = true
   try {
     if (isOnline.value) {
-      await salesStore.createSale({ items, payment_method: paymentMethod.value })
+      await salesStore.createSale({ items, payment_method: paymentMethod.value, idempotency_key: idempotencyKey })
       cart.clear()
       isCartOpen.value = false
       showSuccess('Venta registrada.')
     } else {
-      await queueOffline(items)
+      await queueOffline(items, idempotencyKey)
     }
   } catch (err) {
     if (isBackendError(err)) {
@@ -77,19 +84,28 @@ async function confirmSale() {
       submitError.value = err.message
     } else {
       // fetch() itself failed — we're not actually reachable. Fall back to
-      // the offline path instead of losing the sale.
-      await queueOffline(items)
+      // the offline path instead of losing the sale. This used to risk a
+      // duplicate sale if the request had actually succeeded server-side
+      // before the response was lost; now that the same idempotencyKey
+      // travels with every retry (including the one useSaleSync makes once
+      // connectivity returns), the backend recognizes the repeat and
+      // returns the original sale instead of creating a second one.
+      await queueOffline(items, idempotencyKey)
     }
   } finally {
     isSubmitting.value = false
   }
 }
 
-async function queueOffline(items: { product_id: string; quantity: number; unit_price_cents: number }[]) {
+async function queueOffline(
+  items: { product_id: string; quantity: number; unit_price_cents: number }[],
+  idempotencyKey: string,
+) {
   await addPendingSale({
     id: crypto.randomUUID(),
     items,
     payment_method: paymentMethod.value,
+    idempotencyKey,
     createdAt: new Date().toISOString(),
     status: 'PENDING_SYNC',
   })

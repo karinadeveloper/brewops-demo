@@ -115,7 +115,7 @@ func (m *mockInventoryMovementRepository) ListTrash(ctx context.Context) ([]doma
 
 // mockSaleRepository implements domain.SaleRepository the same way.
 type mockSaleRepository struct {
-	createFunc     func(ctx context.Context, sale *domain.Sale, createdBy uuid.UUID) error
+	createFunc     func(ctx context.Context, sale *domain.Sale, createdBy uuid.UUID) (bool, error)
 	getByIDFunc    func(ctx context.Context, id uuid.UUID) (*domain.Sale, error)
 	listFunc       func(ctx context.Context, params domain.ListSalesParams) ([]domain.Sale, error)
 	softDeleteFunc func(ctx context.Context, id, deletedBy uuid.UUID) error
@@ -123,7 +123,7 @@ type mockSaleRepository struct {
 	listTrashFunc  func(ctx context.Context) ([]domain.TrashedSale, error)
 }
 
-func (m *mockSaleRepository) Create(ctx context.Context, sale *domain.Sale, createdBy uuid.UUID) error {
+func (m *mockSaleRepository) Create(ctx context.Context, sale *domain.Sale, createdBy uuid.UUID) (bool, error) {
 	return m.createFunc(ctx, sale, createdBy)
 }
 

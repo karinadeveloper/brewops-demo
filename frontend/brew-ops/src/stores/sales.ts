@@ -19,6 +19,7 @@ export interface Sale {
 export interface CreateSaleInput {
   items: SaleItem[]
   payment_method: 'CASH' | 'TRANSFER'
+  idempotency_key: string
 }
 
 interface SalesState {

@@ -49,13 +49,14 @@ type Product struct {
 }
 
 type Sale struct {
-	ID            pgtype.UUID        `json:"id"`
-	TotalCents    int64              `json:"total_cents"`
-	PaymentMethod string             `json:"payment_method"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	CreatedBy     pgtype.UUID        `json:"created_by"`
-	DeletedAt     pgtype.Timestamptz `json:"deleted_at"`
-	DeletedBy     pgtype.UUID        `json:"deleted_by"`
+	ID             pgtype.UUID        `json:"id"`
+	TotalCents     int64              `json:"total_cents"`
+	PaymentMethod  string             `json:"payment_method"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	CreatedBy      pgtype.UUID        `json:"created_by"`
+	DeletedAt      pgtype.Timestamptz `json:"deleted_at"`
+	DeletedBy      pgtype.UUID        `json:"deleted_by"`
+	IdempotencyKey pgtype.UUID        `json:"idempotency_key"`
 }
 
 type SaleItem struct {

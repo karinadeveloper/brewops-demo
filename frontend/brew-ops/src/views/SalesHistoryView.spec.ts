@@ -62,6 +62,7 @@ describe('SalesHistoryView', () => {
       id: 'local-1',
       items: [{ product_id: 'p1', quantity: 1, unit_price_cents: 4500 }],
       payment_method: 'CASH',
+      idempotencyKey: 'local-1-key',
       createdAt: '2026-01-02T12:00:00.000Z',
       status: 'PENDING_SYNC',
     })
@@ -80,6 +81,7 @@ describe('SalesHistoryView', () => {
       id: 'local-1',
       items: [{ product_id: 'p1', quantity: 1, unit_price_cents: 4500 }],
       payment_method: 'CASH',
+      idempotencyKey: 'local-1-key',
       createdAt: '2026-01-02T12:00:00.000Z',
       status: 'SYNC_ERROR',
       errorKind: 'transport',
@@ -104,6 +106,7 @@ describe('SalesHistoryView', () => {
       id: 'local-1',
       items: [{ product_id: 'p1', quantity: 1, unit_price_cents: 4500 }],
       payment_method: 'CASH',
+      idempotencyKey: 'local-1-key',
       createdAt: '2026-01-02T12:00:00.000Z',
       status: 'SYNC_ERROR',
       errorKind: 'business',

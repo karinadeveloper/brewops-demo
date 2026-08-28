@@ -16,7 +16,19 @@ let watcherStarted = false
 async function syncOne(sale: PendingSale, onBusinessRejection?: (sale: PendingSale, message: string) => void) {
   const { post } = useApi()
   try {
-    await post('/sales', { items: sale.items, payment_method: sale.payment_method })
+    // sale.idempotencyKey was generated once, at confirmation time (see
+    // PointOfSaleView), and is reused unchanged on every retry this
+    // function makes for the same record — never regenerated here. That's
+    // what makes the "transport failure → re-queue and try again later"
+    // design below safe: if an earlier attempt actually succeeded
+    // server-side and only the response was lost, the backend recognizes
+    // the repeated key and returns the original sale instead of recording
+    // a duplicate.
+    await post('/sales', {
+      items: sale.items,
+      payment_method: sale.payment_method,
+      idempotency_key: sale.idempotencyKey,
+    })
     // Success — the backend now holds the authoritative record, see
     // useOfflineSalesDb.deletePendingSale's doc comment for why the local
     // copy is removed rather than kept around.
@@ -33,7 +45,9 @@ async function syncOne(sale: PendingSale, onBusinessRejection?: (sale: PendingSa
     } else {
       // fetch() itself threw — a transport failure (network error/timeout),
       // not a decision from the backend. Safe to retry without asking the
-      // user anything first.
+      // user anything first, precisely because idempotencyKey makes a
+      // retry of a request that actually succeeded a no-op rather than a
+      // duplicate sale.
       await updatePendingSale({
         ...sale,
         status: 'SYNC_ERROR',

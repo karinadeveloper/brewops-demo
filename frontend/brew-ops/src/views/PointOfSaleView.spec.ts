@@ -158,6 +158,7 @@ describe('PointOfSaleView', () => {
     expect(postMock).toHaveBeenCalledWith('/sales', {
       items: [{ product_id: 'p1', quantity: 1, unit_price_cents: 4500 }],
       payment_method: 'CASH',
+      idempotency_key: expect.any(String),
     })
   })
 
@@ -198,6 +199,28 @@ describe('PointOfSaleView', () => {
     expect(pending).toHaveLength(1)
     expect(pending[0].status).toBe('PENDING_SYNC')
     expect(pending[0].items).toEqual([{ product_id: 'p1', quantity: 1, unit_price_cents: 4500 }])
+    expect(pending[0].idempotencyKey).toEqual(expect.any(String))
     expect(screen.queryByLabelText('Cantidad de Jugo de naranja 1L')).not.toBeInTheDocument()
+  })
+
+  it('two separate offline confirmations generate two distinct idempotency keys', async () => {
+    // Arrange
+    isOnlineRef.value = false
+    getMock.mockResolvedValueOnce([makeProduct()])
+    await renderPos()
+    await waitFor(() => expect(screen.getByRole('button', { name: /Jugo de naranja/ })).toBeInTheDocument())
+    const user = userEvent.setup()
+
+    // Act — confirm the same product as two separate sales, one at a time.
+    await user.click(screen.getByRole('button', { name: /Jugo de naranja/ }))
+    await user.click(screen.getByRole('button', { name: 'Confirmar venta' }))
+    await waitFor(async () => expect(await getAllPendingSales()).toHaveLength(1))
+    await user.click(screen.getByRole('button', { name: /Jugo de naranja/ }))
+    await user.click(screen.getByRole('button', { name: 'Confirmar venta' }))
+    await waitFor(async () => expect(await getAllPendingSales()).toHaveLength(2))
+
+    // Assert
+    const pending = await getAllPendingSales()
+    expect(pending[0].idempotencyKey).not.toBe(pending[1].idempotencyKey)
   })
 })

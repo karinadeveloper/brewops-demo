@@ -69,11 +69,13 @@ describe('useSalesStore', () => {
     const result = await store.createSale({
       items: [{ product_id: 'p1', quantity: 2, unit_price_cents: 4500 }],
       payment_method: 'CASH',
+      idempotency_key: 'key-1',
     })
 
     expect(postMock).toHaveBeenCalledWith('/sales', {
       items: [{ product_id: 'p1', quantity: 2, unit_price_cents: 4500 }],
       payment_method: 'CASH',
+      idempotency_key: 'key-1',
     })
     expect(result).toEqual(created)
     expect(store.items[0]).toEqual(created)
@@ -84,7 +86,11 @@ describe('useSalesStore', () => {
     const store = useSalesStore()
 
     await expect(
-      store.createSale({ items: [{ product_id: 'p1', quantity: 999, unit_price_cents: 4500 }], payment_method: 'CASH' }),
+      store.createSale({
+        items: [{ product_id: 'p1', quantity: 999, unit_price_cents: 4500 }],
+        payment_method: 'CASH',
+        idempotency_key: 'key-1',
+      }),
     ).rejects.toMatchObject({ status: 409 })
     expect(store.items).toEqual([])
   })

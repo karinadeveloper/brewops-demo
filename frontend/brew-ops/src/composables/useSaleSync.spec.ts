@@ -30,6 +30,7 @@ function makeSale(overrides: Partial<PendingSale> = {}): PendingSale {
     id: 's1',
     items: [{ product_id: 'p1', quantity: 2, unit_price_cents: 4500 }],
     payment_method: 'CASH',
+    idempotencyKey: 'key-1',
     createdAt: '2026-01-01T00:00:00.000Z',
     status: 'PENDING_SYNC',
     ...overrides,
@@ -57,6 +58,7 @@ describe('useSaleSync', () => {
     expect(postMock).toHaveBeenCalledWith('/sales', {
       items: [{ product_id: 'p1', quantity: 2, unit_price_cents: 4500 }],
       payment_method: 'CASH',
+      idempotency_key: 'key-1',
     })
   })
 
@@ -109,6 +111,44 @@ describe('useSaleSync', () => {
     // Assert
     all = await getAllPendingSales()
     expect(all).toEqual([])
+  })
+
+  it('sends the same idempotency_key on every retry of the same local sale, never a fresh one', async () => {
+    // Arrange — this is the guarantee that makes queuing a sale offline
+    // after a lost transport response safe rather than a duplicate risk.
+    await addPendingSale(makeSale({ idempotencyKey: 'stable-key' }))
+    postMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    // Act — first attempt fails at the transport level.
+    await syncPendingSales()
+    postMock.mockResolvedValueOnce({ id: 'server-1' })
+    await retryPendingSale('s1')
+
+    // Assert — both attempts carried the exact same idempotency_key.
+    expect(postMock).toHaveBeenNthCalledWith(
+      1,
+      '/sales',
+      expect.objectContaining({ idempotency_key: 'stable-key' }),
+    )
+    expect(postMock).toHaveBeenNthCalledWith(
+      2,
+      '/sales',
+      expect.objectContaining({ idempotency_key: 'stable-key' }),
+    )
+  })
+
+  it('two distinct local sales carry two distinct idempotency keys', async () => {
+    // Arrange
+    await addPendingSale(makeSale({ id: 's1', idempotencyKey: 'key-a', createdAt: '2026-01-01T00:00:01.000Z' }))
+    await addPendingSale(makeSale({ id: 's2', idempotencyKey: 'key-b', createdAt: '2026-01-01T00:00:02.000Z' }))
+    postMock.mockResolvedValue({ id: 'ok' })
+
+    // Act
+    await syncPendingSales()
+
+    // Assert
+    const sentKeys = postMock.mock.calls.map(([, body]) => (body as { idempotency_key: string }).idempotency_key)
+    expect(sentKeys).toEqual(['key-a', 'key-b'])
   })
 
   it('syncs pending sales one at a time, in creation order, never in parallel', async () => {

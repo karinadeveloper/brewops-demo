@@ -7,10 +7,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/kariaranelly/brew-ops/backend/internal/domain"
 )
+
+// idempotencyKeyConstraint is the unique index from migration 000007 —
+// checked by name so a duplicate-key race is distinguished from any other
+// unique-violation the sales table might one day acquire.
+const idempotencyKeyConstraint = "idx_sales_idempotency_key"
 
 // SaleRepository adapts the sqlc-generated Queries to domain.SaleRepository.
 // Like InventoryRepository, it holds the pool directly so Create can run
@@ -31,18 +37,35 @@ func NewSaleRepository(pool *pgxpool.Pool) *SaleRepository {
 // are aggregated before the stock check and the decrement, so e.g. two
 // 3-unit lines for a product with 5 in stock correctly fail as insufficient
 // stock (6 > 5) instead of each line passing a stale independent check.
-func (r *SaleRepository) Create(ctx context.Context, sale *domain.Sale, createdBy uuid.UUID) error {
+//
+// When sale.IdempotencyKey is set, Create first checks whether a sale with
+// that key already exists (active or soft-deleted) and, if so, returns it
+// unchanged instead of processing anything — see domain.SaleRepository.
+func (r *SaleRepository) Create(ctx context.Context, sale *domain.Sale, createdBy uuid.UUID) (bool, error) {
 	if len(sale.Items) == 0 {
-		return domain.ErrEmptySale
+		return false, domain.ErrEmptySale
 	}
 
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	qtx := r.q.WithTx(tx)
+
+	if sale.IdempotencyKey != nil {
+		existingRow, err := qtx.GetSaleByIdempotencyKey(ctx, toNullUUID(sale.IdempotencyKey))
+		if err == nil {
+			if err := loadSaleInto(ctx, qtx, sale, existingRow); err != nil {
+				return false, err
+			}
+			return true, nil
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return false, err
+		}
+	}
 
 	var order []uuid.UUID
 	required := map[uuid.UUID]int32{}
@@ -62,7 +85,7 @@ func (r *SaleRepository) Create(ctx context.Context, sale *domain.Sale, createdB
 				notFound = append(notFound, id.String())
 				continue
 			}
-			return err
+			return false, err
 		}
 		if p.CurrentStock < required[id] {
 			insufficient = append(insufficient, fmt.Sprintf("%s (requested %d, available %d)", p.Name, required[id], p.CurrentStock))
@@ -71,19 +94,35 @@ func (r *SaleRepository) Create(ctx context.Context, sale *domain.Sale, createdB
 		products[id] = p
 	}
 	if len(notFound) > 0 {
-		return fmt.Errorf("%w: products %v", domain.ErrProductNotFound, notFound)
+		return false, fmt.Errorf("%w: products %v", domain.ErrProductNotFound, notFound)
 	}
 	if len(insufficient) > 0 {
-		return fmt.Errorf("%w: %v", domain.ErrInsufficientStock, insufficient)
+		return false, fmt.Errorf("%w: %v", domain.ErrInsufficientStock, insufficient)
 	}
 
 	saleRow, err := qtx.CreateSale(ctx, CreateSaleParams{
-		TotalCents:    sale.TotalCents,
-		PaymentMethod: sale.PaymentMethod,
-		CreatedBy:     toNullUUID(&createdBy),
+		TotalCents:     sale.TotalCents,
+		PaymentMethod:  sale.PaymentMethod,
+		CreatedBy:      toNullUUID(&createdBy),
+		IdempotencyKey: toNullUUID(sale.IdempotencyKey),
 	})
 	if err != nil {
-		return err
+		var pgErr *pgconn.PgError
+		if sale.IdempotencyKey != nil && errors.As(err, &pgErr) && pgErr.Code == uniqueViolationCode && pgErr.ConstraintName == idempotencyKeyConstraint {
+			// Lost the race against a concurrent request carrying the same
+			// key: this transaction is now aborted by Postgres, so recover
+			// the winner's row with a fresh query outside of it instead of
+			// propagating the constraint error.
+			existingRow, getErr := r.q.GetSaleByIdempotencyKey(ctx, toNullUUID(sale.IdempotencyKey))
+			if getErr != nil {
+				return false, getErr
+			}
+			if loadErr := loadSaleInto(ctx, r.q, sale, existingRow); loadErr != nil {
+				return false, loadErr
+			}
+			return true, nil
+		}
+		return false, err
 	}
 
 	items := make([]domain.SaleItem, 0, len(sale.Items))
@@ -95,7 +134,7 @@ func (r *SaleRepository) Create(ctx context.Context, sale *domain.Sale, createdB
 			UnitPriceCents: item.UnitPriceCents,
 		})
 		if err != nil {
-			return err
+			return false, err
 		}
 		items = append(items, *toDomainSaleItem(itemRow))
 
@@ -105,7 +144,7 @@ func (r *SaleRepository) Create(ctx context.Context, sale *domain.Sale, createdB
 			Quantity:  item.Quantity,
 			CreatedBy: toNullUUID(&createdBy),
 		}); err != nil {
-			return err
+			return false, err
 		}
 	}
 
@@ -116,18 +155,34 @@ func (r *SaleRepository) Create(ctx context.Context, sale *domain.Sale, createdB
 			Version:  products[id].Version,
 		}); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
-				return domain.ErrOptimisticLockConflict
+				return false, domain.ErrOptimisticLockConflict
 			}
-			return err
+			return false, err
 		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return err
+		return false, err
 	}
 
 	*sale = *toDomainSale(saleRow)
 	sale.Items = items
+	return false, nil
+}
+
+// loadSaleInto populates sale (and its Items) from an already-fetched sales
+// row, using q for the item lookup — q may be a plain *Queries or one bound
+// to an in-flight transaction (WithTx), since both share the same type.
+func loadSaleInto(ctx context.Context, q *Queries, sale *domain.Sale, row Sale) error {
+	itemRows, err := q.ListSaleItemsBySaleID(ctx, row.ID)
+	if err != nil {
+		return err
+	}
+	*sale = *toDomainSale(row)
+	sale.Items = make([]domain.SaleItem, len(itemRows))
+	for i, itemRow := range itemRows {
+		sale.Items[i] = *toDomainSaleItem(itemRow)
+	}
 	return nil
 }
 
@@ -222,13 +277,14 @@ func (r *SaleRepository) ListTrash(ctx context.Context) ([]domain.TrashedSale, e
 
 func toDomainSale(row Sale) *domain.Sale {
 	return &domain.Sale{
-		ID:            fromUUID(row.ID),
-		TotalCents:    row.TotalCents,
-		PaymentMethod: row.PaymentMethod,
-		CreatedAt:     fromTimestamptz(row.CreatedAt),
-		CreatedBy:     fromNullUUID(row.CreatedBy),
-		DeletedAt:     fromNullTimestamptz(row.DeletedAt),
-		DeletedBy:     fromNullUUID(row.DeletedBy),
+		ID:             fromUUID(row.ID),
+		IdempotencyKey: fromNullUUID(row.IdempotencyKey),
+		TotalCents:     row.TotalCents,
+		PaymentMethod:  row.PaymentMethod,
+		CreatedAt:      fromTimestamptz(row.CreatedAt),
+		CreatedBy:      fromNullUUID(row.CreatedBy),
+		DeletedAt:      fromNullTimestamptz(row.DeletedAt),
+		DeletedBy:      fromNullUUID(row.DeletedBy),
 	}
 }
 

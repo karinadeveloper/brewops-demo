@@ -12,19 +12,25 @@ import (
 )
 
 const createSale = `-- name: CreateSale :one
-INSERT INTO sales (total_cents, payment_method, created_by)
-VALUES ($1, $2, $3)
-RETURNING id, total_cents, payment_method, created_at, created_by, deleted_at, deleted_by
+INSERT INTO sales (total_cents, payment_method, created_by, idempotency_key)
+VALUES ($1, $2, $3, $4)
+RETURNING id, total_cents, payment_method, created_at, created_by, deleted_at, deleted_by, idempotency_key
 `
 
 type CreateSaleParams struct {
-	TotalCents    int64       `json:"total_cents"`
-	PaymentMethod string      `json:"payment_method"`
-	CreatedBy     pgtype.UUID `json:"created_by"`
+	TotalCents     int64       `json:"total_cents"`
+	PaymentMethod  string      `json:"payment_method"`
+	CreatedBy      pgtype.UUID `json:"created_by"`
+	IdempotencyKey pgtype.UUID `json:"idempotency_key"`
 }
 
 func (q *Queries) CreateSale(ctx context.Context, arg CreateSaleParams) (Sale, error) {
-	row := q.db.QueryRow(ctx, createSale, arg.TotalCents, arg.PaymentMethod, arg.CreatedBy)
+	row := q.db.QueryRow(ctx, createSale,
+		arg.TotalCents,
+		arg.PaymentMethod,
+		arg.CreatedBy,
+		arg.IdempotencyKey,
+	)
 	var i Sale
 	err := row.Scan(
 		&i.ID,
@@ -34,6 +40,7 @@ func (q *Queries) CreateSale(ctx context.Context, arg CreateSaleParams) (Sale, e
 		&i.CreatedBy,
 		&i.DeletedAt,
 		&i.DeletedBy,
+		&i.IdempotencyKey,
 	)
 	return i, err
 }
@@ -114,7 +121,7 @@ func (q *Queries) DecrementProductStockForSale(ctx context.Context, arg Decremen
 }
 
 const getSaleByID = `-- name: GetSaleByID :one
-SELECT id, total_cents, payment_method, created_at, created_by, deleted_at, deleted_by FROM sales
+SELECT id, total_cents, payment_method, created_at, created_by, deleted_at, deleted_by, idempotency_key FROM sales
 WHERE id = $1 AND deleted_at IS NULL
 `
 
@@ -129,12 +136,36 @@ func (q *Queries) GetSaleByID(ctx context.Context, id pgtype.UUID) (Sale, error)
 		&i.CreatedBy,
 		&i.DeletedAt,
 		&i.DeletedBy,
+		&i.IdempotencyKey,
+	)
+	return i, err
+}
+
+const getSaleByIdempotencyKey = `-- name: GetSaleByIdempotencyKey :one
+SELECT id, total_cents, payment_method, created_at, created_by, deleted_at, deleted_by, idempotency_key FROM sales
+WHERE idempotency_key = $1
+`
+
+// Includes soft-deleted sales deliberately: the goal is to never reprocess
+// the same client attempt, regardless of what later happened to the sale.
+func (q *Queries) GetSaleByIdempotencyKey(ctx context.Context, idempotencyKey pgtype.UUID) (Sale, error) {
+	row := q.db.QueryRow(ctx, getSaleByIdempotencyKey, idempotencyKey)
+	var i Sale
+	err := row.Scan(
+		&i.ID,
+		&i.TotalCents,
+		&i.PaymentMethod,
+		&i.CreatedAt,
+		&i.CreatedBy,
+		&i.DeletedAt,
+		&i.DeletedBy,
+		&i.IdempotencyKey,
 	)
 	return i, err
 }
 
 const getTrashedSaleByID = `-- name: GetTrashedSaleByID :one
-SELECT id, total_cents, payment_method, created_at, created_by, deleted_at, deleted_by FROM sales
+SELECT id, total_cents, payment_method, created_at, created_by, deleted_at, deleted_by, idempotency_key FROM sales
 WHERE id = $1 AND deleted_at IS NOT NULL
 `
 
@@ -149,6 +180,7 @@ func (q *Queries) GetTrashedSaleByID(ctx context.Context, id pgtype.UUID) (Sale,
 		&i.CreatedBy,
 		&i.DeletedAt,
 		&i.DeletedBy,
+		&i.IdempotencyKey,
 	)
 	return i, err
 }
@@ -187,7 +219,7 @@ func (q *Queries) ListSaleItemsBySaleID(ctx context.Context, saleID pgtype.UUID)
 }
 
 const listSales = `-- name: ListSales :many
-SELECT id, total_cents, payment_method, created_at, created_by, deleted_at, deleted_by FROM sales
+SELECT id, total_cents, payment_method, created_at, created_by, deleted_at, deleted_by, idempotency_key FROM sales
 WHERE deleted_at IS NULL
   AND ($1::timestamptz IS NULL OR created_at >= $1)
   AND ($2::timestamptz IS NULL OR created_at <= $2)
@@ -224,6 +256,7 @@ func (q *Queries) ListSales(ctx context.Context, arg ListSalesParams) ([]Sale, e
 			&i.CreatedBy,
 			&i.DeletedAt,
 			&i.DeletedBy,
+			&i.IdempotencyKey,
 		); err != nil {
 			return nil, err
 		}
@@ -236,7 +269,7 @@ func (q *Queries) ListSales(ctx context.Context, arg ListSalesParams) ([]Sale, e
 }
 
 const listTrashedSales = `-- name: ListTrashedSales :many
-SELECT s.id, s.total_cents, s.payment_method, s.created_at, s.created_by, s.deleted_at, s.deleted_by, u.email AS deleted_by_email
+SELECT s.id, s.total_cents, s.payment_method, s.created_at, s.created_by, s.deleted_at, s.deleted_by, s.idempotency_key, u.email AS deleted_by_email
 FROM sales s
 LEFT JOIN users u ON u.id = s.deleted_by
 WHERE s.deleted_at IS NOT NULL
@@ -251,6 +284,7 @@ type ListTrashedSalesRow struct {
 	CreatedBy      pgtype.UUID        `json:"created_by"`
 	DeletedAt      pgtype.Timestamptz `json:"deleted_at"`
 	DeletedBy      pgtype.UUID        `json:"deleted_by"`
+	IdempotencyKey pgtype.UUID        `json:"idempotency_key"`
 	DeletedByEmail pgtype.Text        `json:"deleted_by_email"`
 }
 
@@ -271,6 +305,7 @@ func (q *Queries) ListTrashedSales(ctx context.Context) ([]ListTrashedSalesRow, 
 			&i.CreatedBy,
 			&i.DeletedAt,
 			&i.DeletedBy,
+			&i.IdempotencyKey,
 			&i.DeletedByEmail,
 		); err != nil {
 			return nil, err
@@ -287,7 +322,7 @@ const restoreSale = `-- name: RestoreSale :one
 UPDATE sales
 SET deleted_at = NULL, deleted_by = NULL
 WHERE id = $1 AND deleted_at IS NOT NULL
-RETURNING id, total_cents, payment_method, created_at, created_by, deleted_at, deleted_by
+RETURNING id, total_cents, payment_method, created_at, created_by, deleted_at, deleted_by, idempotency_key
 `
 
 func (q *Queries) RestoreSale(ctx context.Context, id pgtype.UUID) (Sale, error) {
@@ -301,6 +336,7 @@ func (q *Queries) RestoreSale(ctx context.Context, id pgtype.UUID) (Sale, error)
 		&i.CreatedBy,
 		&i.DeletedAt,
 		&i.DeletedBy,
+		&i.IdempotencyKey,
 	)
 	return i, err
 }
