@@ -34,6 +34,16 @@ const router = createRouter({
       name: 'products-trash',
       component: () => import('../views/ProductsTrashView.vue'),
     },
+    {
+      path: '/pos',
+      name: 'pos',
+      component: () => import('../views/PointOfSaleView.vue'),
+    },
+    {
+      path: '/sales',
+      name: 'sales-history',
+      component: () => import('../views/SalesHistoryView.vue'),
+    },
   ],
 })
 

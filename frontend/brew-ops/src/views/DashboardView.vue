@@ -12,6 +12,12 @@ import EmptyState from '../components/shared/EmptyState.vue'
       <RouterLink to="/products">
         Productos
       </RouterLink>
+      <RouterLink to="/pos">
+        Punto de venta
+      </RouterLink>
+      <RouterLink to="/sales">
+        Historial de ventas
+      </RouterLink>
     </nav>
     <EmptyState message="El panel de control estará disponible próximamente." />
   </main>
@@ -26,6 +32,8 @@ import EmptyState from '../components/shared/EmptyState.vue'
 
 .dashboard-nav {
   margin: var(--space-3) 0;
+  display: flex;
+  gap: var(--space-3);
 }
 
 .dashboard-nav a {
