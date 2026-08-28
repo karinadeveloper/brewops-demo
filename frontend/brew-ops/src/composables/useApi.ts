@@ -53,7 +53,6 @@ async function request<T>(path: string, init: RequestInit = {}, isRetry = false)
   const isAuthPath = AUTH_PATHS.includes(path)
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...(init.headers as Record<string, string> | undefined),
   }
   if (authStore.accessToken && !isAuthPath) {
@@ -99,11 +98,24 @@ async function request<T>(path: string, init: RequestInit = {}, isRetry = false)
 // store — never call fetch or axios directly from a component.
 export function useApi() {
   return {
-    get: <T>(path: string) => request<T>(path, { method: 'GET' }),
+    get: <T>(path: string) => request<T>(path, { method: 'GET', headers: { 'Content-Type': 'application/json' } }),
     post: <T>(path: string, body?: unknown) =>
-      request<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
+      request<T>(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : undefined,
+      }),
     patch: <T>(path: string, body?: unknown) =>
-      request<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined }),
-    delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+      request<T>(path, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : undefined,
+      }),
+    delete: <T>(path: string) =>
+      request<T>(path, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } }),
+    // postForm sends a multipart/form-data body (file uploads) — deliberately
+    // no Content-Type header here, so fetch sets it itself with the correct
+    // boundary. Used for POST /uploads/image.
+    postForm: <T>(path: string, formData: FormData) => request<T>(path, { method: 'POST', body: formData }),
   }
 }

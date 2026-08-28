@@ -18,6 +18,12 @@ export default tseslint.config(
   {
     rules: {
       'vue/multi-word-component-names': 'off',
+      // typescript-eslint's own docs recommend disabling this: the base
+      // no-undef rule doesn't understand ambient DOM types (Event,
+      // HTMLSelectElement, window, etc.) and produces false positives on
+      // them — TypeScript itself already catches genuinely undefined
+      // identifiers, more accurately.
+      'no-undef': 'off',
     },
   },
 )
