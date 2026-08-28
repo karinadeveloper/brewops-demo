@@ -25,7 +25,7 @@ func (q *Queries) GetInventoryValue(ctx context.Context) (int64, error) {
 }
 
 const getRevenueByDay = `-- name: GetRevenueByDay :many
-SELECT date_trunc('day', created_at)::timestamptz AS day,
+SELECT (date_trunc('day', created_at AT TIME ZONE 'America/Mexico_City') AT TIME ZONE 'America/Mexico_City')::timestamptz AS day,
        COALESCE(SUM(total_cents), 0)::bigint AS total_cents
 FROM sales
 WHERE deleted_at IS NULL
@@ -45,6 +45,14 @@ type GetRevenueByDayRow struct {
 	TotalCents int64              `json:"total_cents"`
 }
 
+// "day" is the calendar day in America/Mexico_City, NOT in UTC (the
+// session's own timezone) — created_at is converted to Mexico City
+// wall-clock time before truncating to midnight, then converted back to
+// the UTC instant that midnight corresponds to. Without this, a sale made
+// at, say, 11pm in Mexico City (already past midnight in UTC) would be
+// miscounted into the next calendar day from the business owner's
+// perspective. The returned value is still a timestamptz — an absolute
+// instant — but it always lands exactly on a Mexico City midnight.
 func (q *Queries) GetRevenueByDay(ctx context.Context, arg GetRevenueByDayParams) ([]GetRevenueByDayRow, error) {
 	rows, err := q.db.Query(ctx, getRevenueByDay, arg.FromDate, arg.ToDate)
 	if err != nil {

@@ -30,6 +30,14 @@ type Querier interface {
 	GetInventoryMovementByID(ctx context.Context, id pgtype.UUID) (InventoryMovement, error)
 	GetInventoryValue(ctx context.Context) (int64, error)
 	GetProductByID(ctx context.Context, id pgtype.UUID) (Product, error)
+	// "day" is the calendar day in America/Mexico_City, NOT in UTC (the
+	// session's own timezone) — created_at is converted to Mexico City
+	// wall-clock time before truncating to midnight, then converted back to
+	// the UTC instant that midnight corresponds to. Without this, a sale made
+	// at, say, 11pm in Mexico City (already past midnight in UTC) would be
+	// miscounted into the next calendar day from the business owner's
+	// perspective. The returned value is still a timestamptz — an absolute
+	// instant — but it always lands exactly on a Mexico City midnight.
 	GetRevenueByDay(ctx context.Context, arg GetRevenueByDayParams) ([]GetRevenueByDayRow, error)
 	GetRevenueTotal(ctx context.Context, arg GetRevenueTotalParams) (int64, error)
 	GetSaleByID(ctx context.Context, id pgtype.UUID) (Sale, error)

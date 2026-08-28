@@ -41,7 +41,16 @@ func (r *ReportRepository) Revenue(ctx context.Context, from, to *time.Time, gro
 	}
 	points := make([]domain.RevenuePoint, len(rows))
 	for i, row := range rows {
-		day := row.Day.Time
+		// pgx decodes timestamptz via time.Unix(), which yields a time.Time
+		// in the Go process's *local* system timezone — not UTC, and not
+		// whatever timezone the SQL grouped by. GetRevenueByDay already
+		// computed the correct absolute instant for Mexico City midnight;
+		// normalizing to UTC here (rather than leaving it however pgx
+		// happened to decode it) makes the day-string this instant
+		// eventually formats to independent of the deploying machine/
+		// container's local timezone setting, which is never pinned
+		// anywhere in this codebase.
+		day := row.Day.Time.UTC()
 		points[i] = domain.RevenuePoint{Day: &day, TotalCents: row.TotalCents}
 	}
 	return points, nil
