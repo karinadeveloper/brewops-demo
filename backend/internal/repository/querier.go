@@ -11,16 +11,42 @@ import (
 )
 
 type Querier interface {
+	// Atomically applies a signed delta to current_stock, guarded so the update
+	// affects zero rows (rather than violating the CHECK constraint) when the
+	// product is missing/soft-deleted or the delta would take stock negative —
+	// the caller distinguishes those cases with a follow-up GetProductByID.
+	AdjustProductStock(ctx context.Context, arg AdjustProductStockParams) (Product, error)
+	CreateInventoryMovement(ctx context.Context, arg CreateInventoryMovementParams) (InventoryMovement, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
+	CreateSale(ctx context.Context, arg CreateSaleParams) (Sale, error)
+	CreateSaleItem(ctx context.Context, arg CreateSaleItemParams) (SaleItem, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	// Mirrors UpdateProduct's optimistic-concurrency guard: the WHERE version
+	// match means a concurrent sale (or edit) of the same product between the
+	// caller's stock check and this decrement makes this return zero rows,
+	// which the repository surfaces as ErrOptimisticLockConflict (409).
+	DecrementProductStockForSale(ctx context.Context, arg DecrementProductStockForSaleParams) (Product, error)
+	GetInventoryMovementByID(ctx context.Context, id pgtype.UUID) (InventoryMovement, error)
 	GetProductByID(ctx context.Context, id pgtype.UUID) (Product, error)
+	GetSaleByID(ctx context.Context, id pgtype.UUID) (Sale, error)
+	GetTrashedInventoryMovementByID(ctx context.Context, id pgtype.UUID) (InventoryMovement, error)
 	GetTrashedProductByID(ctx context.Context, id pgtype.UUID) (Product, error)
+	GetTrashedSaleByID(ctx context.Context, id pgtype.UUID) (Sale, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	ListInventoryMovements(ctx context.Context, arg ListInventoryMovementsParams) ([]InventoryMovement, error)
 	ListLowStockProducts(ctx context.Context) ([]Product, error)
 	ListProducts(ctx context.Context, arg ListProductsParams) ([]Product, error)
+	ListSaleItemsBySaleID(ctx context.Context, saleID pgtype.UUID) ([]SaleItem, error)
+	ListSales(ctx context.Context, arg ListSalesParams) ([]Sale, error)
+	ListTrashedInventoryMovements(ctx context.Context) ([]ListTrashedInventoryMovementsRow, error)
 	ListTrashedProducts(ctx context.Context) ([]ListTrashedProductsRow, error)
+	ListTrashedSales(ctx context.Context) ([]ListTrashedSalesRow, error)
+	RestoreInventoryMovement(ctx context.Context, id pgtype.UUID) (InventoryMovement, error)
 	RestoreProduct(ctx context.Context, id pgtype.UUID) (Product, error)
+	RestoreSale(ctx context.Context, id pgtype.UUID) (Sale, error)
+	SoftDeleteInventoryMovement(ctx context.Context, arg SoftDeleteInventoryMovementParams) (int64, error)
 	SoftDeleteProduct(ctx context.Context, arg SoftDeleteProductParams) (int64, error)
+	SoftDeleteSale(ctx context.Context, arg SoftDeleteSaleParams) (int64, error)
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
 }
 

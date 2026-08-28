@@ -56,3 +56,10 @@ func fromNullTimestamptz(t pgtype.Timestamptz) *time.Time {
 	tt := t.Time
 	return &tt
 }
+
+func toTimestamptz(t *time.Time) pgtype.Timestamptz {
+	if t == nil {
+		return pgtype.Timestamptz{}
+	}
+	return pgtype.Timestamptz{Time: *t, Valid: true}
+}

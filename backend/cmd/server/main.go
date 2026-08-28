@@ -68,12 +68,18 @@ func registerRoutes(app *fiber.App, cfg *config.Config, pool *pgxpool.Pool) {
 
 	userRepo := repository.NewUserRepository(pool)
 	productRepo := repository.NewProductRepository(pool)
+	inventoryRepo := repository.NewInventoryRepository(pool)
+	saleRepo := repository.NewSaleRepository(pool)
 
 	authService := service.NewAuthService(userRepo, jwtSecret, cfg.JWTAccessTokenTTL, cfg.JWTRefreshTokenTTL)
 	productService := service.NewProductService(productRepo)
+	inventoryService := service.NewInventoryService(inventoryRepo)
+	saleService := service.NewSaleService(saleRepo)
 
 	authHandler := handler.NewAuthHandler(authService, cfg.IsDevelopment())
 	productHandler := handler.NewProductHandler(productService)
+	inventoryHandler := handler.NewInventoryHandler(inventoryService)
+	saleHandler := handler.NewSaleHandler(saleService)
 
 	v1 := app.Group("/api/v1")
 
@@ -95,6 +101,21 @@ func registerRoutes(app *fiber.App, cfg *config.Config, pool *pgxpool.Pool) {
 	products.Patch("/:id", productHandler.Update)
 	products.Delete("/:id", productHandler.Delete)
 	products.Post("/:id/restore", productHandler.Restore)
+
+	movements := v1.Group("/inventory/movements", appmiddleware.Auth(jwtSecret))
+	movements.Get("/", inventoryHandler.List)
+	movements.Post("/", inventoryHandler.Create)
+	movements.Get("/trash", inventoryHandler.Trash)
+	movements.Delete("/:id", inventoryHandler.Delete)
+	movements.Post("/:id/restore", inventoryHandler.Restore)
+
+	sales := v1.Group("/sales", appmiddleware.Auth(jwtSecret))
+	sales.Get("/", saleHandler.List)
+	sales.Post("/", saleHandler.Create)
+	sales.Get("/trash", saleHandler.Trash)
+	sales.Get("/:id", saleHandler.Get)
+	sales.Delete("/:id", saleHandler.Delete)
+	sales.Post("/:id/restore", saleHandler.Restore)
 }
 
 func healthHandler(pool *pgxpool.Pool) fiber.Handler {
