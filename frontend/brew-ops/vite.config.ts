@@ -4,9 +4,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
-  // Read .env from the repo root so the frontend shares a single
-  // .env / .env.example with the backend instead of duplicating it.
-  envDir: '../../',
+  // envDir defaults to this project's own root (frontend/brew-ops/.env) —
+  // deliberately NOT the repo root or backend/.env, since anything in a
+  // Vite .env gets bundled into the public JS. See .env.example.
   plugins: [
     vue(),
     VitePWA({

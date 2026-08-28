@@ -2,16 +2,27 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${DB_USER:-brewops}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-brewops}
-      POSTGRES_DB: ${DB_NAME:-brewops}
+    env_file:
+      - ./backend/.env
     ports:
-      - "${DB_PORT:-5432}:5432"
+      # Hardcoded rather than driven by a compose ${VAR}: that substitution
+      # is resolved at parse time from a project-root .env file or an
+      # explicit --env-file flag, which is a completely separate mechanism
+      # from the env_file: above (that one only injects vars into the
+      # container's own runtime environment). This repo deliberately keeps
+      # no .env at the root (see backend/.env's header comment), so this
+      # port is kept in sync by hand with the port embedded in
+      # DATABASE_URL in backend/.env.
+      - "5439:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-brewops} -d ${DB_NAME:-brewops}"]
+      # $$ (not $) so compose passes the literal $POSTGRES_USER/$POSTGRES_DB
+      # through to the container's shell instead of trying to substitute
+      # them itself — the shell then expands them from the env_file-injected
+      # values above. See the ports comment for why plain ${...} compose-level
+      # substitution doesn't reach values from env_file.
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 5
