@@ -10,6 +10,7 @@ CLAUDE.md
 *.test
 *.out
 /backend/tmp/
+/backend/local-storage/
 
 # Node / Frontend
 node_modules/

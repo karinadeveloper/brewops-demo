@@ -32,6 +32,14 @@ type Config struct {
 	GCPStorageBucket     string
 	GoogleAppCredentials string
 
+	// Image storage backend: "local" (default, ./local-storage/ + a static
+	// route) or "gcs" (GCP Cloud Storage) — see storage.StorageClient.
+	StorageBackend string
+	// Base URL LocalDiskStorageClient prefixes onto the filename to build a
+	// publicly-fetchable URL, mirroring GCS's fully-qualified URLs. Unused
+	// when StorageBackend is "gcs".
+	PublicBaseURL string
+
 	// CORS
 	CORSAllowedOrigins string
 }
@@ -50,6 +58,8 @@ func Load() (*Config, error) {
 		GCPProjectID:         os.Getenv("GCP_PROJECT_ID"),
 		GCPStorageBucket:     os.Getenv("GCP_STORAGE_BUCKET"),
 		GoogleAppCredentials: os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"),
+		StorageBackend:       getEnv("STORAGE_BACKEND", "local"),
+		PublicBaseURL:        getEnv("PUBLIC_BASE_URL", "http://localhost:8080"),
 		CORSAllowedOrigins:   getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:5173"),
 	}
 

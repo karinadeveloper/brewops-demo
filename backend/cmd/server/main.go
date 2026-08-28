@@ -3,21 +3,26 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 
 	"github.com/kariaranelly/brew-ops/backend/config"
+	"github.com/kariaranelly/brew-ops/backend/internal/ai"
+	"github.com/kariaranelly/brew-ops/backend/internal/domain"
 	"github.com/kariaranelly/brew-ops/backend/internal/handler"
 	appmiddleware "github.com/kariaranelly/brew-ops/backend/internal/middleware"
 	"github.com/kariaranelly/brew-ops/backend/internal/repository"
 	"github.com/kariaranelly/brew-ops/backend/internal/service"
+	"github.com/kariaranelly/brew-ops/backend/internal/storage"
 )
 
 func main() {
@@ -49,37 +54,95 @@ func run() error {
 		return err
 	}
 
-	app := fiber.New()
+	storageClient, err := newStorageClient(ctx, cfg)
+	if err != nil {
+		return err
+	}
+
+	app := fiber.New(fiber.Config{
+		// Fiber's default BodyLimit is 4MB, which would silently reject
+		// exactly the >15MB uploads CLAUDE.md's image scheme says the
+		// backend must accept and optimize rather than reject. This is a
+		// technical safety ceiling against unbounded memory use, not a
+		// business-rule rejection — no legitimate phone photo gets close
+		// to it.
+		BodyLimit: 50 * 1024 * 1024,
+	})
 	app.Use(logger.New())
 	app.Use(recover.New())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: cfg.CORSAllowedOrigins,
 	}))
 
+	// General rate-limit tier: applies to all of /api/v1, generous enough to
+	// never bother a single admin, strict enough to catch a runaway
+	// loop/bot before it burns through Cloud Run's free-tier quota — see
+	// CLAUDE.md's "Rate limiting" section.
+	app.Use("/api/v1", limiter.New(limiter.Config{
+		Max:        100,
+		Expiration: time.Minute,
+		LimitReached: func(c *fiber.Ctx) error {
+			return fiber.NewError(fiber.StatusTooManyRequests, "too many requests, slow down")
+		},
+	}))
+
+	if cfg.StorageBackend == "local" {
+		app.Static("/local-storage", localStorageDir)
+	}
+
 	app.Get("/health", healthHandler(pool))
 
-	registerRoutes(app, cfg, pool)
+	registerRoutes(app, cfg, pool, storageClient)
 
 	return app.Listen(":" + cfg.Port)
 }
 
-func registerRoutes(app *fiber.App, cfg *config.Config, pool *pgxpool.Pool) {
+// localStorageDir is where LocalDiskStorageClient writes uploaded files —
+// see CLAUDE.md's "no active GCP billing account yet" note. Gitignored.
+const localStorageDir = "./local-storage"
+
+// newStorageClient selects the image storage backend from
+// cfg.StorageBackend. "local" (default) needs no GCP setup at all, which is
+// the point — see storage.LocalDiskStorageClient's doc comment.
+func newStorageClient(ctx context.Context, cfg *config.Config) (domain.StorageClient, error) {
+	switch cfg.StorageBackend {
+	case "gcs":
+		return storage.NewGCSStorageClient(ctx, cfg.GCPStorageBucket)
+	case "local", "":
+		return storage.NewLocalDiskStorageClient(localStorageDir, cfg.PublicBaseURL)
+	default:
+		return nil, fmt.Errorf("config: unknown STORAGE_BACKEND %q (want \"local\" or \"gcs\")", cfg.StorageBackend)
+	}
+}
+
+func registerRoutes(app *fiber.App, cfg *config.Config, pool *pgxpool.Pool, storageClient domain.StorageClient) {
 	jwtSecret := []byte(cfg.JWTSecret)
 
 	userRepo := repository.NewUserRepository(pool)
 	productRepo := repository.NewProductRepository(pool)
 	inventoryRepo := repository.NewInventoryRepository(pool)
 	saleRepo := repository.NewSaleRepository(pool)
+	marketingAssetRepo := repository.NewMarketingAssetRepository(pool)
+	reportRepo := repository.NewReportRepository(pool)
 
 	authService := service.NewAuthService(userRepo, jwtSecret, cfg.JWTAccessTokenTTL, cfg.JWTRefreshTokenTTL)
 	productService := service.NewProductService(productRepo)
 	inventoryService := service.NewInventoryService(inventoryRepo)
 	saleService := service.NewSaleService(saleRepo)
+	imageService := service.NewImageService(storageClient)
+	marketingAssetService := service.NewMarketingAssetService(marketingAssetRepo, imageService)
+	openAIClient := ai.NewOpenAIClient(cfg.OpenAIAPIKey)
+	suggestionService := service.NewInventorySuggestionService(openAIClient, productRepo)
+	reportService := service.NewReportService(reportRepo)
 
 	authHandler := handler.NewAuthHandler(authService, cfg.IsDevelopment())
 	productHandler := handler.NewProductHandler(productService)
 	inventoryHandler := handler.NewInventoryHandler(inventoryService)
 	saleHandler := handler.NewSaleHandler(saleService)
+	uploadHandler := handler.NewUploadHandler(imageService)
+	marketingAssetHandler := handler.NewMarketingAssetHandler(marketingAssetService)
+	suggestionHandler := handler.NewInventorySuggestionHandler(suggestionService)
+	reportHandler := handler.NewReportHandler(reportService)
 
 	v1 := app.Group("/api/v1")
 
@@ -109,6 +172,19 @@ func registerRoutes(app *fiber.App, cfg *config.Config, pool *pgxpool.Pool) {
 	movements.Delete("/:id", inventoryHandler.Delete)
 	movements.Post("/:id/restore", inventoryHandler.Restore)
 
+	// AI rate-limit tier: a much stricter, independent limit than the
+	// general tier, because every call here costs real money via the
+	// OpenAI API regardless of server load — see CLAUDE.md's "Rate
+	// limiting" section.
+	suggest := v1.Group("/inventory", appmiddleware.Auth(jwtSecret), limiter.New(limiter.Config{
+		Max:        10,
+		Expiration: time.Minute,
+		LimitReached: func(c *fiber.Ctx) error {
+			return fiber.NewError(fiber.StatusTooManyRequests, "AI suggestion rate limit exceeded, try again in a minute")
+		},
+	}))
+	suggest.Post("/suggest", suggestionHandler.Suggest)
+
 	sales := v1.Group("/sales", appmiddleware.Auth(jwtSecret))
 	sales.Get("/", saleHandler.List)
 	sales.Post("/", saleHandler.Create)
@@ -116,6 +192,21 @@ func registerRoutes(app *fiber.App, cfg *config.Config, pool *pgxpool.Pool) {
 	sales.Get("/:id", saleHandler.Get)
 	sales.Delete("/:id", saleHandler.Delete)
 	sales.Post("/:id/restore", saleHandler.Restore)
+
+	uploads := v1.Group("/uploads", appmiddleware.Auth(jwtSecret))
+	uploads.Post("/image", uploadHandler.Upload)
+
+	marketingAssets := v1.Group("/marketing/assets", appmiddleware.Auth(jwtSecret))
+	marketingAssets.Get("/", marketingAssetHandler.List)
+	marketingAssets.Post("/", marketingAssetHandler.Create)
+	marketingAssets.Get("/trash", marketingAssetHandler.Trash)
+	marketingAssets.Delete("/:id", marketingAssetHandler.Delete)
+	marketingAssets.Post("/:id/restore", marketingAssetHandler.Restore)
+
+	reports := v1.Group("/reports", appmiddleware.Auth(jwtSecret))
+	reports.Get("/revenue", reportHandler.Revenue)
+	reports.Get("/top-products", reportHandler.TopProducts)
+	reports.Get("/inventory-value", reportHandler.InventoryValue)
 }
 
 func healthHandler(pool *pgxpool.Pool) fiber.Handler {
