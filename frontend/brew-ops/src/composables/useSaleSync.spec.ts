@@ -198,6 +198,39 @@ describe('useSaleSync', () => {
     await vi.waitFor(async () => expect(await getAllPendingSales()).toEqual([]))
   })
 
+  // Found via Session 9's offline E2E test: a sale that finished syncing
+  // automatically on reconnect (not via this view's own retry button) kept
+  // showing as pending in SalesHistoryView, because nothing told it to
+  // re-read IndexedDB. syncVersion is the fix — a view that watches it
+  // learns a sync pass (background or manual) just finished.
+  it('syncVersion increments after a sync pass completes, so other views can react to a background sync', async () => {
+    // Arrange
+    await addPendingSale(makeSale())
+    postMock.mockResolvedValueOnce({ id: 'server-1' })
+    const { syncVersion } = useSaleSync()
+    const before = syncVersion.value
+
+    // Act
+    await syncPendingSales()
+
+    // Assert
+    expect(syncVersion.value).toBe(before + 1)
+  })
+
+  it('syncVersion also increments after a manual retryPendingSale', async () => {
+    // Arrange
+    await addPendingSale(makeSale())
+    postMock.mockResolvedValueOnce({ id: 'server-1' })
+    const { syncVersion } = useSaleSync()
+    const before = syncVersion.value
+
+    // Act
+    await retryPendingSale('s1')
+
+    // Assert
+    expect(syncVersion.value).toBe(before + 1)
+  })
+
   it('does not sync again just because isOnline stays true', async () => {
     // Arrange
     isOnlineRef.value = true

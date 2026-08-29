@@ -63,6 +63,19 @@ describe('PointOfSaleView', () => {
     await waitFor(() => expect(screen.getByText('No hay productos disponibles')).toBeInTheDocument())
   })
 
+  it('shows a load-error empty state with a retry action when fetching products fails', async () => {
+    // Arrange
+    getMock.mockRejectedValueOnce({ status: 500, message: 'server error' })
+
+    // Act
+    await renderPos()
+
+    // Assert — this used to silently show an empty grid, indistinguishable
+    // from "no products exist yet", with no way to retry.
+    await waitFor(() => expect(screen.getByText('No se pudieron cargar los productos')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+  })
+
   it('tapping a product adds it to the cart', async () => {
     // Arrange
     getMock.mockResolvedValueOnce([makeProduct()])

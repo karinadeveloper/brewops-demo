@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import EmptyState from '../components/shared/EmptyState.vue'
+import SkeletonList from '../components/shared/SkeletonList.vue'
 import ProductGridButton from '../components/pos/ProductGridButton.vue'
 import CartPanel from '../components/pos/CartPanel.vue'
 import { useProductsStore } from '../stores/products'
@@ -26,6 +27,10 @@ let successTimeoutId: ReturnType<typeof setTimeout> | null = null
 onMounted(() => {
   void productsStore.fetchProducts(1)
 })
+
+function retryLoad() {
+  void productsStore.fetchProducts(1)
+}
 
 function showSuccess(message: string) {
   successMessage.value = message
@@ -134,8 +139,29 @@ async function queueOffline(
       Sin conexión — las ventas se guardarán y se sincronizarán automáticamente.
     </p>
 
+    <SkeletonList
+      v-if="!productsStore.hasLoadedOnce"
+      :rows="4"
+    />
+
     <EmptyState
-      v-if="productsStore.hasLoadedOnce && productsStore.items.length === 0 && !productsStore.loadError"
+      v-else-if="productsStore.loadError"
+      title="No se pudieron cargar los productos"
+      message="Ocurrió un error al conectar con el servidor. Intentá de nuevo."
+    >
+      <template #action>
+        <button
+          type="button"
+          class="btn"
+          @click="retryLoad"
+        >
+          Reintentar
+        </button>
+      </template>
+    </EmptyState>
+
+    <EmptyState
+      v-else-if="productsStore.items.length === 0"
       title="No hay productos disponibles"
       message="Agregá productos desde la sección de Productos antes de vender."
     />
@@ -196,6 +222,15 @@ async function queueOffline(
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+
+.btn {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  display: inline-flex;
+  align-items: center;
 }
 
 .product-grid {

@@ -1,4 +1,4 @@
-import { watch } from 'vue'
+import { ref, watch, type Ref } from 'vue'
 import { useApi, type ApiError } from './useApi'
 import { useConnectivity } from './useConnectivity'
 import {
@@ -12,6 +12,19 @@ import {
 // again before a previous sync finished) never run two sync passes at once.
 let isSyncing = false
 let watcherStarted = false
+
+// Bumped once after every sync pass (syncPendingSales OR a single
+// retryPendingSale) finishes, whether or not anything actually changed.
+// The app-level watcher (registered once, in App.vue) triggers sync passes
+// on reconnect regardless of which view happens to be mounted — this is
+// how a view like SalesHistoryView, which reads its own local snapshot of
+// IndexedDB into a component ref, finds out a *background* sync (not one
+// it triggered itself, e.g. via its own "Reintentar" button) completed and
+// it should re-read that snapshot. Found missing during Session 9's
+// offline E2E test: without this, a sale synced automatically on reconnect
+// stayed shown as "Pendiente de sincronizar" until the user navigated away
+// and back.
+const syncVersion: Ref<number> = ref(0)
 
 async function syncOne(sale: PendingSale, onBusinessRejection?: (sale: PendingSale, message: string) => void) {
   const { post } = useApi()
@@ -79,6 +92,7 @@ export async function syncPendingSales(
     }
   } finally {
     isSyncing = false
+    syncVersion.value += 1
   }
 }
 
@@ -95,7 +109,11 @@ export async function retryPendingSale(
   if (!sale) {
     return
   }
-  await syncOne(sale, onBusinessRejection)
+  try {
+    await syncOne(sale, onBusinessRejection)
+  } finally {
+    syncVersion.value += 1
+  }
 }
 
 // Wires automatic sync to connectivity: fires once whenever isOnline
@@ -120,6 +138,7 @@ export function useSaleSync(onBusinessRejection?: (sale: PendingSale, message: s
   return {
     syncNow: () => syncPendingSales(onBusinessRejection),
     retry: (id: string) => retryPendingSale(id, onBusinessRejection),
+    syncVersion,
   }
 }
 
@@ -128,4 +147,5 @@ export function __resetSaleSyncForTests() {
   watcherStarted = false
   stopWatcher?.()
   stopWatcher = null
+  syncVersion.value = 0
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import EmptyState from '../components/shared/EmptyState.vue'
 import SkeletonList from '../components/shared/SkeletonList.vue'
 import StatusBadge from '../components/shared/StatusBadge.vue'
@@ -13,7 +13,7 @@ type HistoryRow =
   | { kind: 'pending' | 'error'; id: string; createdAt: string; totalCents: number; paymentMethod: string; pendingSale: PendingSale }
 
 const salesStore = useSalesStore()
-const { retry } = useSaleSync()
+const { retry, syncVersion } = useSaleSync()
 
 const pendingSales = ref<PendingSale[]>([])
 const expandedSaleId = ref<string | null>(null)
@@ -34,6 +34,17 @@ async function loadPendingSales() {
 onMounted(() => {
   void salesStore.fetchSales(1)
   void loadPendingSales()
+})
+
+// A sync pass can complete in the background — triggered by the app-level
+// connectivity watcher (App.vue), not by anything on this page — while
+// this view happens to be mounted. Without re-reading IndexedDB and
+// refetching confirmed sales here too, a sale that just finished syncing
+// would keep showing "Pendiente de sincronizar" until the user navigated
+// away and back.
+watch(syncVersion, () => {
+  void loadPendingSales()
+  void salesStore.fetchSales(salesStore.page)
 })
 
 function pendingSaleTotalCents(sale: PendingSale): number {
@@ -106,7 +117,7 @@ function retryLoad() {
     />
 
     <EmptyState
-      v-else-if="salesStore.loadError"
+      v-else-if="salesStore.loadError && rows.length === 0"
       title="No se pudo cargar el historial"
       message="Ocurrió un error al conectar con el servidor."
     >
@@ -127,8 +138,29 @@ function retryLoad() {
       message="Las ventas que registres en el punto de venta aparecerán acá."
     />
 
+    <!-- A failed fetch of confirmed sales must never hide locally-queued
+         PENDING_SYNC/SYNC_ERROR sales — those come from IndexedDB, not the
+         network, and are exactly what this view needs to keep showing
+         while offline. See the loadError && rows.length === 0 guard above:
+         this banner covers the case where the fetch failed but there's
+         still something (local sales) worth showing underneath it. -->
+    <p
+      v-if="salesStore.loadError && rows.length > 0"
+      class="banner banner--error"
+      role="alert"
+    >
+      No se pudo actualizar el historial desde el servidor — se muestran las ventas guardadas localmente.
+      <button
+        type="button"
+        class="btn-link"
+        @click="retryLoad"
+      >
+        Reintentar
+      </button>
+    </p>
+
     <ul
-      v-else
+      v-if="rows.length > 0"
       class="sale-list"
     >
       <li
@@ -307,5 +339,15 @@ function retryLoad() {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
+}
+
+.btn-link {
+  border: none;
+  background: none;
+  color: inherit;
+  padding: 0;
+  margin-left: var(--space-2);
+  text-decoration: underline;
+  font: inherit;
 }
 </style>

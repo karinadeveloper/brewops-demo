@@ -18,6 +18,7 @@ vi.mock('../composables/useConnectivity', () => ({
 }))
 
 const { addPendingSale } = await import('../composables/useOfflineSalesDb')
+const { __resetSaleSyncForTests } = await import('../composables/useSaleSync')
 
 async function renderHistory() {
   const pinia = createTestingPinia({ stubActions: false })
@@ -29,6 +30,11 @@ describe('SalesHistoryView', () => {
     globalThis.indexedDB = new IDBFactory()
     getMock.mockReset()
     postMock.mockReset()
+    // useSaleSync's syncVersion/watcherStarted/isSyncing are module-level
+    // singletons — without resetting them, a later test's retry can trigger
+    // SalesHistoryView's syncVersion watcher to fire from stale state left
+    // over by an earlier test in this file.
+    __resetSaleSyncForTests()
   })
 
   it('shows an empty state when there are no sales at all', async () => {
@@ -76,7 +82,10 @@ describe('SalesHistoryView', () => {
 
   it('shows a transport SYNC_ERROR with a working Reintentar button', async () => {
     // Arrange
-    getMock.mockResolvedValueOnce([])
+    // A successful retry now also refetches confirmed sales (see the
+    // syncVersion watcher above) — mockResolvedValue, not Once, covers
+    // both the initial mount fetch and that follow-up one.
+    getMock.mockResolvedValue([])
     await addPendingSale({
       id: 'local-1',
       items: [{ product_id: 'p1', quantity: 1, unit_price_cents: 4500 }],
@@ -97,6 +106,33 @@ describe('SalesHistoryView', () => {
 
     // Assert
     await waitFor(() => expect(screen.queryByText('Error de sincronización')).not.toBeInTheDocument())
+  })
+
+  // Found via the E2E offline suite (Session 9): a failed network fetch of
+  // confirmed sales used to hide the whole view behind a full-page error,
+  // silently taking locally-queued PENDING_SYNC sales down with it — the
+  // opposite of the resilience CLAUDE.md's offline story promises.
+  it('a failed fetch of confirmed sales still shows locally-queued pending sales, not a full-page error', async () => {
+    // Arrange
+    getMock.mockRejectedValueOnce({ status: 500, message: 'server error' })
+    await addPendingSale({
+      id: 'local-1',
+      items: [{ product_id: 'p1', quantity: 1, unit_price_cents: 4500 }],
+      payment_method: 'CASH',
+      idempotencyKey: 'local-1-key',
+      createdAt: '2026-01-02T12:00:00.000Z',
+      status: 'PENDING_SYNC',
+    })
+
+    // Act
+    await renderHistory()
+
+    // Assert
+    await waitFor(() => expect(screen.getByText('Pendiente de sincronizar')).toBeInTheDocument())
+    expect(screen.queryByText('No se pudo cargar el historial')).not.toBeInTheDocument()
+    expect(
+      screen.getByText(/No se pudo actualizar el historial desde el servidor/),
+    ).toBeInTheDocument()
   })
 
   it('shows a business SYNC_ERROR without a retry button, only an explanatory note', async () => {
