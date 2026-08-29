@@ -144,4 +144,60 @@ describe('ProductsView', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Agregar producto' })).toBeInTheDocument()
   })
+
+  // Covers the Dashboard's low-stock alerts, which link here as
+  // /products?edit=<id> instead of coupling the Dashboard directly to
+  // ProductFormModal.
+  it('opens the edit modal automatically when arriving with ?edit=<id>, then clears the query param', async () => {
+    // Arrange
+    const product = makeProduct({ id: 'p1', name: 'Jugo de mango' })
+    getMock.mockImplementation((path: string) => {
+      if (path.startsWith('/products/p1')) {
+        return Promise.resolve(product)
+      }
+      if (path.startsWith('/products?')) {
+        return Promise.resolve([])
+      }
+      return Promise.reject(new Error(`unexpected path: ${path}`))
+    })
+    const router = buildTestRouter()
+    await router.push('/products?edit=p1')
+    await router.isReady()
+    const pinia = createTestingPinia({ stubActions: false })
+
+    // Act
+    render(ProductsView, { global: { plugins: [pinia, router] } })
+
+    // Assert
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
+    expect(screen.getByRole('heading', { name: 'Editar producto' })).toBeInTheDocument()
+    await waitFor(() => expect(router.currentRoute.value.query.edit).toBeUndefined())
+  })
+
+  it('shows an error banner when the deep-linked product cannot be fetched', async () => {
+    // Arrange
+    getMock.mockImplementation((path: string) => {
+      if (path.startsWith('/products/missing')) {
+        return Promise.reject(new Error('not found'))
+      }
+      if (path.startsWith('/products?')) {
+        return Promise.resolve([])
+      }
+      return Promise.reject(new Error(`unexpected path: ${path}`))
+    })
+    const router = buildTestRouter()
+    await router.push('/products?edit=missing')
+    await router.isReady()
+    const pinia = createTestingPinia({ stubActions: false })
+
+    // Act
+    render(ProductsView, { global: { plugins: [pinia, router] } })
+
+    // Assert
+    await waitFor(() =>
+      expect(
+        screen.getByText('No se pudo abrir el producto solicitado. Buscalo manualmente en la lista.'),
+      ).toBeInTheDocument(),
+    )
+  })
 })

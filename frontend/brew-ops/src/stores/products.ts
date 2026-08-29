@@ -108,6 +108,15 @@ export const useProductsStore = defineStore('products', {
       void this.fetchProducts(1)
     },
 
+    // Fetches a single product by id regardless of pagination/filter state
+    // — used by ProductsView to open the edit modal for a product deep-linked
+    // from the Dashboard's low-stock alerts, which may not be on the
+    // currently-loaded page.
+    async getProduct(id: string): Promise<Product> {
+      const { get } = useApi()
+      return get<Product>(`/products/${id}`)
+    },
+
     async createProduct(input: ProductInput): Promise<Product> {
       const { post } = useApi()
       const product = await post<Product>('/products', input)

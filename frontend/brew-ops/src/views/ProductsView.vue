@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import EmptyState from '../components/shared/EmptyState.vue'
 import SkeletonList from '../components/shared/SkeletonList.vue'
 import ProductListItem from '../components/products/ProductListItem.vue'
@@ -9,6 +9,7 @@ import { useProductsStore, type Product, type ProductCategory } from '../stores/
 import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_LABELS } from '../utils/productCategory'
 
 const productsStore = useProductsStore()
+const router = useRouter()
 
 const isFiltered = computed(
   () => productsStore.categoryFilter !== null || productsStore.searchQuery.trim() !== '',
@@ -18,10 +19,33 @@ const showModal = ref(false)
 const modalMode = ref<'create' | 'edit'>('create')
 const editingProduct = ref<Product | null>(null)
 const deleteError = ref('')
+const deepLinkError = ref('')
 
 onMounted(() => {
   void productsStore.fetchProducts(1)
+  void openFromDeepLink()
 })
+
+// Supports the Dashboard's low-stock alerts, which link here as
+// /products?edit=<id> to open the edit modal directly rather than making
+// the owner find the product in the list themselves. Fetches the product
+// by id independently of the paginated/filtered list — it may not be on
+// whatever page happens to load first — then clears the query param so a
+// page refresh or back-navigation doesn't reopen the modal unexpectedly.
+async function openFromDeepLink() {
+  const id = router.currentRoute.value.query.edit
+  if (typeof id !== 'string' || id === '') {
+    return
+  }
+  try {
+    const product = await productsStore.getProduct(id)
+    openEditModal(product)
+  } catch {
+    deepLinkError.value = 'No se pudo abrir el producto solicitado. Buscalo manualmente en la lista.'
+  } finally {
+    void router.replace({ path: '/products' })
+  }
+}
 
 function openCreateModal() {
   modalMode.value = 'create'
@@ -119,6 +143,14 @@ function goToPage(page: number) {
       role="alert"
     >
       {{ deleteError }}
+    </p>
+
+    <p
+      v-if="deepLinkError"
+      class="banner banner--error"
+      role="alert"
+    >
+      {{ deepLinkError }}
     </p>
 
     <SkeletonList
