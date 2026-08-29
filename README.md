@@ -7,9 +7,9 @@
 
 Inventory, sales, and marketing management system for a small juice and
 beverage business operating in Mexico. Owners track stock, record sales from
-a point-of-sale view, get low-stock alerts, and generate AI-assisted
-marketing images — all from a phone-installable PWA that keeps working
-without a stable internet connection.
+a point-of-sale view, get low-stock alerts, and manage a gallery of product
+and promotional images for WhatsApp — all from a phone-installable PWA that
+keeps working without a stable internet connection.
 
 ## Tech stack
 

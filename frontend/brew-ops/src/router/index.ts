@@ -44,6 +44,16 @@ const router = createRouter({
       name: 'sales-history',
       component: () => import('../views/SalesHistoryView.vue'),
     },
+    {
+      path: '/marketing',
+      name: 'marketing',
+      component: () => import('../views/MarketingView.vue'),
+    },
+    {
+      path: '/marketing/trash',
+      name: 'marketing-trash',
+      component: () => import('../views/MarketingTrashView.vue'),
+    },
   ],
 })
 
