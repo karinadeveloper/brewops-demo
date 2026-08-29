@@ -151,8 +151,12 @@ with
 cd backend && go test ./...
 
 # Frontend
-cd frontend/brew-ops && pnpm run lint && pnpm run build
-```
+cd frontend/brew-ops && pnpm run lint && pnpm run build && pnpm run test
 
-End-to-end tests (Playwright) live in `e2e/` and ship in Session 9, with deep
-coverage on inventory/stock/sales and basic coverage on login/reports.
+# End-to-end (Playwright) — requires Postgres running (docker compose up -d
+# postgres); the backend and a production frontend build+preview are started
+# automatically. See e2e/playwright.config.ts's backend env override for the
+# CORS_ALLOWED_ORIGINS value it uses. Deep coverage on inventory/stock/sales,
+# basic coverage on login/reports, per CLAUDE.md's E2E scope.
+cd e2e && pnpm install && pnpm exec playwright install chromium && pnpm test
+```
