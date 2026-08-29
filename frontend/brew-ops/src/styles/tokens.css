@@ -31,4 +31,10 @@
 
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
+
+  /* Shared between AppNav (which renders these regions) and App.vue
+     (which reserves space for them around <router-view>) — kept as tokens
+     so the two never drift out of sync with each other. */
+  --nav-width: 15rem;
+  --topbar-height: 3.5rem;
 }
