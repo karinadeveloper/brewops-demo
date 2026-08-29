@@ -12,5 +12,11 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /out/server ./cmd/serv
 FROM gcr.io/distroless/static-debian12:nonroot AS final
 COPY --from=build /out/server /server
 
+# Defense-in-depth after the report-grouping timezone bug (see CLAUDE.md's
+# timestamp rule): pins a predictable floor for any future code that
+# decodes/formats a time.Time without explicitly normalizing it, instead of
+# silently inheriting whatever timezone the host happens to run in.
+ENV TZ=UTC
+
 EXPOSE 8080
 ENTRYPOINT ["/server"]
