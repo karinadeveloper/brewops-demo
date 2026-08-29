@@ -111,12 +111,38 @@ pnpm dev
 ## Offline mode (PWA)
 
 BrewOps is designed to keep working at markets or events without stable
-internet: the product catalog is cached by the service worker, and sales
-recorded offline are queued in IndexedDB as `PENDING_SYNC` until connectivity
-returns. A sale that fails to sync for network reasons is retried; a sale
-that syncs but is rejected by business rules (e.g. someone else already sold
-the last unit) is surfaced to the user instead of being silently dropped or
-force-applied. See `CLAUDE.md` for the full sync UX contract.
+internet: the product catalog is cached by the service worker (`NetworkFirst`,
+so an online request always sees the latest data — the cache is purely the
+offline fallback), and sales recorded offline are queued in IndexedDB as
+`PENDING_SYNC` until connectivity returns. A sale that fails to sync for
+network reasons is retried; a sale that syncs but is rejected by business
+rules (e.g. someone else already sold the last unit) is surfaced to the user
+instead of being silently dropped or force-applied. See `CLAUDE.md` for the
+full sync UX contract.
+
+### Installing the PWA locally
+
+The service worker only exists in a production build — `pnpm dev`'s dev
+server never generates one, so offline mode can't be exercised against it.
+To install and test it locally:
+
+```sh
+cd frontend/brew-ops
+pnpm run build
+pnpm run preview   # serves dist/ at http://localhost:4173
+```
+
+Open `http://localhost:4173` in Chrome, then use the install icon in the
+address bar (or DevTools → Application → Manifest, which also confirms the
+manifest itself has no errors). Once installed, DevTools → Network → Offline
+(or literally disconnecting) lets you confirm: the product catalog stays
+browsable, a sale made from the POS queues as "Pendiente de sincronizar" in
+the sales history, and it syncs automatically once connectivity returns.
+
+The backend's CORS_ALLOWED_ORIGINS must include `http://localhost:4173` for
+the preview server to reach it — for a one-off manual check, run the backend
+with
+`CORS_ALLOWED_ORIGINS=http://localhost:4173,http://localhost:5173 go run ./cmd/server`.
 
 ## Testing
 
