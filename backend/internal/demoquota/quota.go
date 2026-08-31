@@ -81,6 +81,14 @@ func NewChecker(store Store) *Checker {
 	return &Checker{store: store, now: time.Now}
 }
 
+// NewCheckerWithClock is NewChecker with an injectable clock — used by
+// integration tests to pin a specific usage_date bucket (so fixture rows
+// can't collide with whatever "today" happens to be when the suite runs) or
+// to simulate a day boundary. Production code always uses NewChecker.
+func NewCheckerWithClock(store Store, now func() time.Time) *Checker {
+	return &Checker{store: store, now: now}
+}
+
 // Result is the outcome of Check.
 type Result struct {
 	// Allowed reports whether the caller may proceed to call OpenAI.
