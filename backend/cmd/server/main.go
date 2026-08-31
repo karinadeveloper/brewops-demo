@@ -17,6 +17,8 @@ import (
 
 	"github.com/kariaranelly/brew-ops/backend/config"
 	"github.com/kariaranelly/brew-ops/backend/internal/ai"
+	"github.com/kariaranelly/brew-ops/backend/internal/demoquota"
+	"github.com/kariaranelly/brew-ops/backend/internal/demoseed"
 	"github.com/kariaranelly/brew-ops/backend/internal/domain"
 	"github.com/kariaranelly/brew-ops/backend/internal/handler"
 	appmiddleware "github.com/kariaranelly/brew-ops/backend/internal/middleware"
@@ -72,6 +74,12 @@ func run() error {
 	app.Use(recover.New())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: cfg.CORSAllowedOrigins,
+		// AllowCredentials is required for the browser to send the
+		// demo_session_id cookie (see appmiddleware.DemoSession) back on
+		// cross-origin requests from the Vite dev server / deployed
+		// frontend origin. Safe with a non-wildcard AllowOrigins, which is
+		// already the case here.
+		AllowCredentials: true,
 	}))
 
 	// General rate-limit tier: applies to all of /api/v1, generous enough to
@@ -100,6 +108,11 @@ func run() error {
 // localStorageDir is where LocalDiskStorageClient writes uploaded files —
 // see CLAUDE.md's "no active GCP billing account yet" note. Gitignored.
 const localStorageDir = "./local-storage"
+
+// seedAssetsDir holds the source images demoseed.Reset copies into
+// localStorageDir on every demo reset — see backend/seed-assets/. Demo-only
+// — see CLAUDE.md's "DEMO MODE" section.
+const seedAssetsDir = "./seed-assets"
 
 // newStorageClient selects the image storage backend from
 // cfg.StorageBackend. "local" (default) needs no GCP setup at all, which is
@@ -175,14 +188,31 @@ func registerRoutes(app *fiber.App, cfg *config.Config, pool *pgxpool.Pool, stor
 	// AI rate-limit tier: a much stricter, independent limit than the
 	// general tier, because every call here costs real money via the
 	// OpenAI API regardless of server load — see CLAUDE.md's "Rate
-	// limiting" section.
-	suggest := v1.Group("/inventory", appmiddleware.Auth(jwtSecret), limiter.New(limiter.Config{
-		Max:        10,
+	// limiting" section. 5/min (not the real product's 10/min) — this repo
+	// is always the public demo, so a tighter per-IP ceiling is a
+	// permanent, unconditional defense-in-depth layer here, not something
+	// gated by DEMO_MODE — see CLAUDE.md's "DEMO MODE" section.
+	suggestMiddlewares := []fiber.Handler{appmiddleware.Auth(jwtSecret), limiter.New(limiter.Config{
+		Max:        5,
 		Expiration: time.Minute,
 		LimitReached: func(c *fiber.Ctx) error {
 			return fiber.NewError(fiber.StatusTooManyRequests, "AI suggestion rate limit exceeded, try again in a minute")
 		},
-	}))
+	})}
+
+	// Demo-only two-tier AI usage quota (per-session + global daily caps) —
+	// only wired up when DEMO_MODE=true. The real product applies no such
+	// quota; a single admin's normal usage is the only limit there. See
+	// CLAUDE.md's "DEMO MODE" section.
+	if cfg.DemoMode {
+		quotaChecker := demoquota.NewChecker(demoquota.NewPostgresStore(pool))
+		suggestMiddlewares = append(suggestMiddlewares,
+			appmiddleware.DemoSession(!cfg.IsDevelopment()),
+			appmiddleware.DemoAIQuota(quotaChecker),
+		)
+	}
+
+	suggest := v1.Group("/inventory", suggestMiddlewares...)
 	suggest.Post("/suggest", suggestionHandler.Suggest)
 
 	sales := v1.Group("/sales", appmiddleware.Auth(jwtSecret))
@@ -207,6 +237,22 @@ func registerRoutes(app *fiber.App, cfg *config.Config, pool *pgxpool.Pool, stor
 	reports.Get("/revenue", reportHandler.Revenue)
 	reports.Get("/top-products", reportHandler.TopProducts)
 	reports.Get("/inventory-value", reportHandler.InventoryValue)
+
+	// Demo-only reset endpoint — deliberately not registered at all unless
+	// DEMO_MODE=true, so a request against a non-demo deployment gets
+	// Fiber's plain unmatched-route 404 instead of a handler that reveals
+	// the route exists at all. See CLAUDE.md's "DEMO MODE" section.
+	if cfg.DemoMode {
+		demoService := service.NewDemoService(pool, demoseed.Options{
+			AdminEmail:      cfg.DemoAdminEmail,
+			AdminPassword:   cfg.DemoAdminPassword,
+			SeedAssetsDir:   seedAssetsDir,
+			LocalStorageDir: localStorageDir,
+			PublicBaseURL:   cfg.PublicBaseURL,
+		})
+		demoHandler := handler.NewDemoHandler(demoService, cfg.DemoResetToken)
+		v1.Post("/admin/demo-reset", demoHandler.Reset)
+	}
 }
 
 func healthHandler(pool *pgxpool.Pool) fiber.Handler {

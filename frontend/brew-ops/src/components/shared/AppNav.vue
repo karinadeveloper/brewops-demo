@@ -6,6 +6,12 @@ import { useAuthStore } from '../../stores/auth'
 const authStore = useAuthStore()
 const isMobileMenuOpen = ref(false)
 
+// Demo-only — see CLAUDE.md's "DEMO MODE" section. Shown across every
+// authenticated view (AppNav is always mounted alongside them — see
+// App.vue) so a visitor is never more than a glance away from knowing this
+// is a public demo, not the real product.
+const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
+
 // Trash views (products, marketing) are deliberately not top-level links
 // here — each is one "Ver papelera" click away from its own list view
 // (ProductsView, MarketingView), which scales better than growing this
@@ -50,6 +56,12 @@ function handleLogout() {
     aria-label="Navegación principal"
   >
     <span class="app-nav-brand app-nav-brand--sidebar">BrewOps</span>
+    <p
+      v-if="isDemoMode"
+      class="app-nav-demo-banner"
+    >
+      Esto es una demo pública — los datos se reinician periódicamente y el uso de IA está limitado.
+    </p>
     <ul class="app-nav-list">
       <li
         v-for="link in links"
@@ -136,6 +148,16 @@ function handleLogout() {
 
 .app-nav--open {
   transform: translateX(0);
+}
+
+.app-nav-demo-banner {
+  margin: 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: hsla(28, 85%, 55%, 0.12);
+  color: hsla(28, 70%, 30%, 1);
+  font-size: 0.8rem;
+  line-height: 1.4;
 }
 
 .app-nav-list {

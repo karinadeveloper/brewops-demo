@@ -42,6 +42,23 @@ type Config struct {
 
 	// CORS
 	CORSAllowedOrigins string
+
+	// Demo mode — see CLAUDE.md's "DEMO MODE" section. Everything gated by
+	// this flag (the reset endpoint, the AI usage quotas) is a demo-only
+	// concern that does not exist in the real BrewOps product; it defaults
+	// to false (fail closed) so a misconfigured deployment never accidentally
+	// exposes demo-only surface area.
+	DemoMode bool
+	// Credentials for the single demo admin account. Read here (never
+	// hardcoded) so both cmd/seed and the reset endpoint upsert the exact
+	// same account. Not required unless the seed command or the reset
+	// endpoint is actually invoked.
+	DemoAdminEmail    string
+	DemoAdminPassword string
+	// Shared secret POST /api/v1/admin/demo-reset compares against the
+	// X-Demo-Reset-Token header. Required whenever DemoMode is true — see
+	// handler.DemoHandler.
+	DemoResetToken string
 }
 
 // Load reads configuration from environment variables and returns an error
@@ -61,6 +78,14 @@ func Load() (*Config, error) {
 		StorageBackend:       getEnv("STORAGE_BACKEND", "local"),
 		PublicBaseURL:        getEnv("PUBLIC_BASE_URL", "http://localhost:8080"),
 		CORSAllowedOrigins:   getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:5173"),
+
+		// Defaults to false (fail closed): DEMO_MODE must be set to "true"
+		// explicitly to expose the demo-reset endpoint and the AI usage
+		// quotas. Any other value (including unset) keeps this false.
+		DemoMode:          getEnv("DEMO_MODE", "false") == "true",
+		DemoAdminEmail:    os.Getenv("DEMO_ADMIN_EMAIL"),
+		DemoAdminPassword: os.Getenv("DEMO_ADMIN_PASSWORD"),
+		DemoResetToken:    os.Getenv("DEMO_RESET_TOKEN"),
 	}
 
 	if err := requireAll(map[string]string{
@@ -84,6 +109,14 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 	cfg.JWTRefreshTokenTTL = refreshTTL
+
+	// Fail fast at startup rather than silently rejecting every reset
+	// request forever: a demo deployment with DEMO_MODE=true but no reset
+	// token configured is a misconfiguration, not a valid "reset disabled"
+	// state (that's what DEMO_MODE=false is for).
+	if cfg.DemoMode && cfg.DemoResetToken == "" {
+		return nil, fmt.Errorf("config: DEMO_RESET_TOKEN is required when DEMO_MODE=true")
+	}
 
 	return cfg, nil
 }

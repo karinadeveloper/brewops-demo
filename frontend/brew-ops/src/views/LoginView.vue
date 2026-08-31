@@ -18,6 +18,13 @@ const errorMessage = ref('')
 // at this page load.
 const sessionExpired = route.query.reason === 'expired'
 
+// Demo-only — see CLAUDE.md's "DEMO MODE" section. These credentials are
+// hardcoded display text, not fetched from the backend: they only need to
+// match whatever DEMO_ADMIN_EMAIL/DEMO_ADMIN_PASSWORD the deployment was
+// seeded with (see backend/.env.example), which a human keeps in sync by
+// hand since it changes rarely, if ever.
+const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
+
 function redirectTarget(): string {
   const redirect = route.query.redirect
   return typeof redirect === 'string' && redirect.length > 0 ? redirect : '/'
@@ -52,6 +59,12 @@ async function handleSubmit() {
         Inicia sesión para continuar
       </p>
 
+      <p
+        v-if="isDemoMode"
+        class="login-banner login-banner--info"
+      >
+        Usa estas credenciales para explorar: <strong>demo@brewops.mx</strong> / <strong>Demo2026!</strong>
+      </p>
       <p
         v-if="sessionExpired"
         class="login-banner login-banner--warning"
@@ -148,6 +161,11 @@ async function handleSubmit() {
 .login-banner--warning {
   color: hsla(40, 90%, 28%, 1);
   background: hsla(40, 90%, 50%, 0.15);
+}
+
+.login-banner--info {
+  color: hsla(210, 70%, 32%, 1);
+  background: hsla(210, 70%, 50%, 0.12);
 }
 
 .login-field {

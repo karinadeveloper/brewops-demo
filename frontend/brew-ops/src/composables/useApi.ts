@@ -59,7 +59,11 @@ async function request<T>(path: string, init: RequestInit = {}, isRetry = false)
     headers.Authorization = `Bearer ${authStore.accessToken}`
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers })
+  // "include" so the backend's demo_session_id cookie (see CLAUDE.md's
+  // "DEMO MODE" section — only ever set when DEMO_MODE=true) round-trips on
+  // cross-origin requests to the API. A harmless no-op against the real
+  // product's backend, which never sets that cookie.
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers, credentials: 'include' })
 
   // Retrying at most once bounds this to a single extra round trip even if
   // the backend keeps returning 401 for some other reason after a

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"unicode/utf8"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -25,6 +26,13 @@ type suggestRequest struct {
 	Text string `json:"text"`
 }
 
+// maxSuggestTextLength bounds the natural-language input to
+// /inventory/suggest before it ever reaches OpenAI — a defense-in-depth
+// measure alongside this repo's demo AI usage quotas (see CLAUDE.md's "DEMO
+// MODE" section) against a single oversized request burning an outsized
+// amount of tokens.
+const maxSuggestTextLength = 500
+
 type suggestedMovementResponse struct {
 	ProductMentioned string  `json:"product_mentioned"`
 	ProductMatch     *string `json:"product_match"`
@@ -37,6 +45,9 @@ func (h *InventorySuggestionHandler) Suggest(c *fiber.Ctx) error {
 	var req suggestRequest
 	if err := c.BodyParser(&req); err != nil || req.Text == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "text is required")
+	}
+	if utf8.RuneCountInString(req.Text) > maxSuggestTextLength {
+		return fiber.NewError(fiber.StatusBadRequest, "text must be at most 500 characters")
 	}
 
 	suggestions, err := h.suggestions.Suggest(c.Context(), req.Text)
