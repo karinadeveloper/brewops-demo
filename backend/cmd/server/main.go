@@ -109,11 +109,6 @@ func run() error {
 // see CLAUDE.md's "no active GCP billing account yet" note. Gitignored.
 const localStorageDir = "./local-storage"
 
-// seedAssetsDir holds the source images demoseed.Reset copies into
-// localStorageDir on every demo reset — see backend/seed-assets/. Demo-only
-// — see CLAUDE.md's "DEMO MODE" section.
-const seedAssetsDir = "./seed-assets"
-
 // newStorageClient selects the image storage backend from
 // cfg.StorageBackend. "local" (default) needs no GCP setup at all, which is
 // the point — see storage.LocalDiskStorageClient's doc comment.
@@ -246,7 +241,7 @@ func registerRoutes(app *fiber.App, cfg *config.Config, pool *pgxpool.Pool, stor
 		demoService := service.NewDemoService(pool, demoseed.Options{
 			AdminEmail:      cfg.DemoAdminEmail,
 			AdminPassword:   cfg.DemoAdminPassword,
-			SeedAssetsDir:   seedAssetsDir,
+			SeedAssetsDir:   cfg.SeedAssetsDir,
 			LocalStorageDir: localStorageDir,
 			PublicBaseURL:   cfg.PublicBaseURL,
 		})

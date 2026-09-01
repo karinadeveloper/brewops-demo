@@ -59,6 +59,14 @@ type Config struct {
 	// X-Demo-Reset-Token header. Required whenever DemoMode is true — see
 	// handler.DemoHandler.
 	DemoResetToken string
+	// SeedAssetsDir holds the source images demoseed.Reset copies on every
+	// reset — see backend/seed-assets/. Defaults to a path relative to the
+	// process's working directory, which only happens to match in local
+	// development (running from backend/) — a container's working directory
+	// is not guaranteed to be the source tree root, so a real deployment
+	// (e.g. Cloud Run) must set this to the absolute path the Dockerfile
+	// actually copies seed-assets/ to (/seed-assets).
+	SeedAssetsDir string
 }
 
 // Load reads configuration from environment variables and returns an error
@@ -86,6 +94,7 @@ func Load() (*Config, error) {
 		DemoAdminEmail:    os.Getenv("DEMO_ADMIN_EMAIL"),
 		DemoAdminPassword: os.Getenv("DEMO_ADMIN_PASSWORD"),
 		DemoResetToken:    os.Getenv("DEMO_RESET_TOKEN"),
+		SeedAssetsDir:     getEnv("SEED_ASSETS_DIR", "./seed-assets"),
 	}
 
 	if err := requireAll(map[string]string{

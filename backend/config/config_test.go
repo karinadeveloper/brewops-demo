@@ -37,4 +37,25 @@ func TestLoad_AllRequiredVarsPresent_ReturnsConfig(t *testing.T) {
 	if cfg.Port != "8080" {
 		t.Errorf("expected default Port 8080, got %s", cfg.Port)
 	}
+	if cfg.SeedAssetsDir != "./seed-assets" {
+		t.Errorf("expected default SeedAssetsDir \"./seed-assets\", got %s", cfg.SeedAssetsDir)
+	}
+}
+
+func TestLoad_SeedAssetsDirEnvVarSet_OverridesDefault(t *testing.T) {
+	// Arrange
+	t.Setenv("DATABASE_URL", "postgres://user:pass@localhost:5432/brewops")
+	t.Setenv("JWT_SECRET", "test-secret")
+	t.Setenv("SEED_ASSETS_DIR", "/seed-assets")
+
+	// Act
+	cfg, err := Load()
+
+	// Assert
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if cfg.SeedAssetsDir != "/seed-assets" {
+		t.Errorf("expected SeedAssetsDir \"/seed-assets\", got %s", cfg.SeedAssetsDir)
+	}
 }

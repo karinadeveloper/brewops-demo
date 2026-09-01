@@ -15,8 +15,12 @@ provider "google" {
 }
 
 # Cloud Storage bucket for product and marketing images. The backend never
-# stores binary image data in Postgres — only the public URL.
+# stores binary image data in Postgres — only the public URL. Only created
+# when enable_gcs_bucket = true; this demo deploy runs with
+# STORAGE_BACKEND=local, which never touches GCS at all.
 resource "google_storage_bucket" "images" {
+  count = var.enable_gcs_bucket ? 1 : 0
+
   name                        = var.storage_bucket_name
   location                    = var.gcp_region
   storage_class               = "STANDARD"
@@ -31,7 +35,9 @@ resource "google_storage_bucket" "images" {
 }
 
 resource "google_storage_bucket_iam_member" "public_read" {
-  bucket = google_storage_bucket.images.name
+  count = var.enable_gcs_bucket ? 1 : 0
+
+  bucket = google_storage_bucket.images[0].name
   role   = "roles/storage.objectViewer"
   member = "allUsers"
 }
@@ -53,6 +59,70 @@ resource "google_cloud_run_v2_service" "backend" {
 
       ports {
         container_port = 8080
+      }
+
+      resources {
+        limits = {
+          cpu    = "1"
+          memory = "512Mi"
+        }
+      }
+
+      env {
+        name  = "APP_ENV"
+        value = var.app_env
+      }
+      env {
+        name  = "DATABASE_URL"
+        value = var.database_url
+      }
+      env {
+        name  = "JWT_SECRET"
+        value = var.jwt_secret
+      }
+      env {
+        name  = "JWT_ACCESS_TOKEN_TTL"
+        value = var.jwt_access_token_ttl
+      }
+      env {
+        name  = "JWT_REFRESH_TOKEN_TTL"
+        value = var.jwt_refresh_token_ttl
+      }
+      env {
+        name  = "DEMO_MODE"
+        value = var.demo_mode ? "true" : "false"
+      }
+      env {
+        name  = "DEMO_ADMIN_EMAIL"
+        value = var.demo_admin_email
+      }
+      env {
+        name  = "DEMO_ADMIN_PASSWORD"
+        value = var.demo_admin_password
+      }
+      env {
+        name  = "DEMO_RESET_TOKEN"
+        value = var.demo_reset_token
+      }
+      env {
+        name  = "STORAGE_BACKEND"
+        value = var.storage_backend
+      }
+      env {
+        name  = "PUBLIC_BASE_URL"
+        value = var.public_base_url
+      }
+      env {
+        name  = "OPENAI_API_KEY"
+        value = var.openai_api_key
+      }
+      env {
+        name  = "CORS_ALLOWED_ORIGINS"
+        value = var.cors_allowed_origins
+      }
+      env {
+        name  = "SEED_ASSETS_DIR"
+        value = var.seed_assets_dir
       }
     }
   }

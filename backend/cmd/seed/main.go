@@ -33,10 +33,6 @@ import (
 // package's dependency graph into this small CLI.
 const localStorageDir = "./local-storage"
 
-// seedAssetsDir holds the source images demoseed.Reset copies into
-// localStorageDir on every run — see backend/seed-assets/.
-const seedAssetsDir = "./seed-assets"
-
 func main() {
 	if err := run(); err != nil {
 		log.Fatal(err)
@@ -70,7 +66,7 @@ func run() error {
 	summary, err := demoseed.Reset(ctx, pool, demoseed.Options{
 		AdminEmail:      cfg.DemoAdminEmail,
 		AdminPassword:   cfg.DemoAdminPassword,
-		SeedAssetsDir:   filepath.Clean(seedAssetsDir),
+		SeedAssetsDir:   filepath.Clean(cfg.SeedAssetsDir),
 		LocalStorageDir: filepath.Clean(localStorageDir),
 		PublicBaseURL:   cfg.PublicBaseURL,
 	})

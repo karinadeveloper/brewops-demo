@@ -1,0 +1,37 @@
+# Copy this file to terraform.tfvars and fill in real values.
+# terraform.tfvars is gitignored — never commit it.
+
+# --- Required, no default in variables.tf ---
+
+gcp_project_id = "brewops-demo"
+
+database_url = "postgresql://user:password@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
+
+jwt_secret = "replace-with-a-long-random-secret"
+
+demo_admin_email = "demo@example.com"
+
+demo_admin_password = "replace-with-a-strong-password"
+
+demo_reset_token = "replace-with-a-long-random-token"
+
+openai_api_key = "sk-replace-with-real-key"
+
+# --- Optional overrides (sensible defaults already set in variables.tf) ---
+
+# gcp_region            = "us-central1"
+# service_name          = "brew-ops-backend"
+# container_image       = "us-central1-docker.pkg.dev/brewops-demo/brewops-demo/backend:latest"
+# min_instances         = 0
+# max_instances         = 3
+# enable_gcs_bucket     = false            # set true only if switching storage_backend to "gcs"
+# storage_bucket_name   = "brewops-demo-images" # required only when enable_gcs_bucket = true
+# app_env               = "production"
+# demo_mode             = true
+# jwt_access_token_ttl  = "8h"
+# jwt_refresh_token_ttl = "720h"
+# storage_backend       = "local"
+# public_base_url       = "http://localhost:8080" # update to the real Cloud Run URL after first apply
+# cors_allowed_origins  = "http://localhost:5173"  # update once the frontend has a real deployed URL
+# seed_assets_dir       = "/seed-assets"           # must match the Dockerfile's COPY seed-assets /seed-assets destination
+# PORT is not settable here — Cloud Run reserves and injects it automatically (8080, matching container_port in main.tf)
