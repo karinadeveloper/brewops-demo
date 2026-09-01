@@ -23,9 +23,15 @@ var seedImageExtensions = map[string]bool{
 
 // copySeedAssets copies every image in srcDir into dstDir (creating it if
 // needed) and returns the fetchable "<publicBaseURL>/local-storage/<file>"
-// URL for each, sorted by filename for determinism. A missing or empty
-// srcDir is not an error — it just means products and marketing assets get
-// no image_url, same as backend/seed-assets/ not having been checked out.
+// URL for each, sorted by filename for determinism. An empty srcDir is the
+// deliberate "no seed images configured" case and is not an error — products
+// and marketing assets simply get no image_url. But a *non-empty* srcDir
+// that doesn't exist on disk is a misconfiguration, not that case — every
+// real caller (cmd/seed, cmd/server) always passes a hardcoded non-empty
+// path, so a missing directory there means the deployment forgot to ship
+// backend/seed-assets/ (e.g. a Docker image that only copies the compiled
+// binary). Silently returning zero images previously masked that as a
+// suspiciously-low-but-successful reset count instead of a clear failure.
 func copySeedAssets(srcDir, dstDir, publicBaseURL string) ([]string, error) {
 	if srcDir == "" {
 		return nil, nil
@@ -33,7 +39,7 @@ func copySeedAssets(srcDir, dstDir, publicBaseURL string) ([]string, error) {
 
 	entries, err := os.ReadDir(srcDir)
 	if os.IsNotExist(err) {
-		return nil, nil
+		return nil, fmt.Errorf("seed assets dir %q does not exist (was it copied into the deployment image/build context?): %w", srcDir, err)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("read seed assets dir %q: %w", srcDir, err)

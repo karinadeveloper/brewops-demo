@@ -1,7 +1,10 @@
 package demoseed
 
 import (
+	"errors"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -138,5 +141,72 @@ func TestDemoMarketingAssets_WithImages_ReturnsThreeToFour(t *testing.T) {
 	// Assert
 	if len(assets) < 3 || len(assets) > 4 {
 		t.Errorf("expected 3-4 marketing assets, got %d", len(assets))
+	}
+}
+
+func TestCopySeedAssets_EmptySrcDir_ReturnsNoImagesAndNoError(t *testing.T) {
+	// Arrange
+	dstDir := filepath.Join(t.TempDir(), "local-storage")
+
+	// Act
+	urls, err := copySeedAssets("", dstDir, "http://localhost:8080")
+
+	// Assert
+	if err != nil {
+		t.Fatalf("expected no error for the deliberate not-configured case, got %v", err)
+	}
+	if len(urls) != 0 {
+		t.Errorf("expected no image URLs, got %v", urls)
+	}
+}
+
+func TestCopySeedAssets_ConfiguredSrcDirMissing_ReturnsClearError(t *testing.T) {
+	// Arrange: a non-empty path that does not exist on disk, mirroring a
+	// deployment (e.g. a Docker image) that forgot to ship backend/seed-assets/.
+	missingSrcDir := filepath.Join(t.TempDir(), "does-not-exist")
+	dstDir := filepath.Join(t.TempDir(), "local-storage")
+
+	// Act
+	urls, err := copySeedAssets(missingSrcDir, dstDir, "http://localhost:8080")
+
+	// Assert
+	if err == nil {
+		t.Fatal("expected an error for a configured-but-missing seed assets dir, got nil")
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("expected the error to wrap os.ErrNotExist, got %v", err)
+	}
+	if urls != nil {
+		t.Errorf("expected no image URLs on error, got %v", urls)
+	}
+}
+
+func TestCopySeedAssets_ExistingSrcDir_CopiesImagesAndReturnsURLs(t *testing.T) {
+	// Arrange
+	srcDir := t.TempDir()
+	dstDir := filepath.Join(t.TempDir(), "local-storage")
+	if err := os.WriteFile(filepath.Join(srcDir, "b.png"), []byte("b"), 0o644); err != nil {
+		t.Fatalf("failed to write fixture file: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(srcDir, "a.png"), []byte("a"), 0o644); err != nil {
+		t.Fatalf("failed to write fixture file: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(srcDir, "notes.txt"), []byte("ignored"), 0o644); err != nil {
+		t.Fatalf("failed to write fixture file: %v", err)
+	}
+
+	// Act
+	urls, err := copySeedAssets(srcDir, dstDir, "http://localhost:8080")
+
+	// Assert
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := []string{"http://localhost:8080/local-storage/a.png", "http://localhost:8080/local-storage/b.png"}
+	if len(urls) != len(want) || urls[0] != want[0] || urls[1] != want[1] {
+		t.Fatalf("expected %v, got %v", want, urls)
+	}
+	if _, err := os.Stat(filepath.Join(dstDir, "a.png")); err != nil {
+		t.Errorf("expected a.png to be copied into dstDir: %v", err)
 	}
 }

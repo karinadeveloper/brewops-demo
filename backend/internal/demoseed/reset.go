@@ -27,8 +27,12 @@ type Options struct {
 	AdminEmail    string
 	AdminPassword string
 	// SeedAssetsDir holds the source images copied into LocalStorageDir on
-	// every reset — see backend/seed-assets/. Optional: if empty, no images
-	// are copied and every product/marketing asset gets a nil image_url.
+	// every reset — see backend/seed-assets/. Optional: if left as the empty
+	// string, no images are copied and every product/marketing asset gets a
+	// nil image_url. But if set to a non-empty path, that path must exist —
+	// see copySeedAssets's doc comment for why a missing configured
+	// directory is a hard error rather than silently treated the same as
+	// "not configured".
 	SeedAssetsDir string
 	// LocalStorageDir is where seed images are copied to, mirroring
 	// storage.LocalDiskStorageClient's own directory, and PublicBaseURL is
