@@ -2,6 +2,7 @@ package handler
 
 import (
 	"crypto/subtle"
+	"log"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -48,6 +49,11 @@ func (h *DemoHandler) Reset(c *fiber.Ctx) error {
 
 	summary, err := h.demo.Reset(c.Context())
 	if err != nil {
+		// Logged here, not returned to the client: the underlying error (e.g.
+		// a missing seed-assets directory, or a DB failure) can carry
+		// internal paths/schema detail that a public, unauthenticated-except-
+		// for-the-reset-token endpoint should never expose.
+		log.Printf("demo reset failed: %v", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "demo reset failed")
 	}
 

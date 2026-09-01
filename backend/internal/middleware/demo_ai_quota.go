@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"log"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
@@ -21,6 +23,7 @@ func DemoAIQuota(checker *demoquota.Checker) fiber.Handler {
 
 		result, err := checker.Check(c.Context(), sessionID)
 		if err != nil {
+			log.Printf("demo AI quota check failed: %v", err)
 			return fiber.NewError(fiber.StatusInternalServerError, "could not evaluate demo AI usage quota")
 		}
 		if !result.Allowed {
