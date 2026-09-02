@@ -134,3 +134,25 @@ resource "google_cloud_run_v2_service_iam_member" "public_invoker" {
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
+
+# Periodically calls the demo-reset endpoint so the public demo cleans
+# itself up without manual intervention. The URI is built from the Cloud
+# Run service's own .uri attribute (never hardcoded, never a separate
+# variable) so Terraform's dependency graph keeps it correct automatically.
+resource "google_cloud_scheduler_job" "demo_reset" {
+  name      = "brewops-demo-reset"
+  region    = var.gcp_region
+  schedule  = var.demo_reset_schedule
+  time_zone = "America/Mexico_City"
+
+  http_target {
+    http_method = "POST"
+    uri         = "${google_cloud_run_v2_service.backend.uri}/api/v1/admin/demo-reset"
+    body        = base64encode("{}")
+
+    headers = {
+      "Content-Type"       = "application/json"
+      "X-Demo-Reset-Token" = var.demo_reset_token
+    }
+  }
+}

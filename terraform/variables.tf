@@ -134,3 +134,9 @@ variable "seed_assets_dir" {
   type        = string
   default     = "/seed-assets"
 }
+
+variable "demo_reset_schedule" {
+  description = "Cron schedule (Cloud Scheduler format) for the automatic demo reset."
+  type        = string
+  default     = "0 */6 * * *" # every 6 hours
+}
