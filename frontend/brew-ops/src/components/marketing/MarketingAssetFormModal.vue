@@ -6,15 +6,17 @@
 // pre-upload-then-create flow): there is no generic "upload first, attach
 // the URL later" endpoint for marketing assets.
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { ApiError } from '../../composables/useApi'
 import { useMarketingStore, type MarketingAsset } from '../../stores/marketing'
-import { MARKETING_ASSET_TYPES, MARKETING_ASSET_TYPE_LABELS } from '../../utils/marketingAssetType'
+import { MARKETING_ASSET_TYPES, MARKETING_ASSET_TYPE_I18N_KEYS } from '../../utils/marketingAssetType'
 
 const emit = defineEmits<{
   close: []
   saved: [asset: MarketingAsset]
 }>()
 
+const { t } = useI18n()
 const marketingStore = useMarketingStore()
 
 const name = ref('')
@@ -45,10 +47,10 @@ const canSave = computed(() => !isSaving.value)
 function validate(): boolean {
   const nextErrors: { name?: string; file?: string } = {}
   if (name.value.trim() === '') {
-    nextErrors.name = 'Ingresá un nombre.'
+    nextErrors.name = t('marketingForm.nameRequired')
   }
   if (!selectedFile.value) {
-    nextErrors.file = 'Seleccioná una imagen.'
+    nextErrors.file = t('marketingForm.fileRequired')
   }
   errors.value = nextErrors
   return Object.keys(nextErrors).length === 0
@@ -67,9 +69,7 @@ async function handleSubmit() {
   } catch (err) {
     const apiError = err as ApiError
     saveError.value =
-      apiError.status === 400
-        ? 'La imagen debe ser un archivo JPEG, PNG o WebP.'
-        : 'No se pudo subir la imagen. Intentá de nuevo.'
+      apiError.status === 400 ? t('marketingForm.saveErrorType') : t('marketingForm.saveErrorGeneric')
   } finally {
     isSaving.value = false
   }
@@ -87,7 +87,7 @@ async function handleSubmit() {
       role="dialog"
       aria-modal="true"
     >
-      <h2>Subir imagen</h2>
+      <h2>{{ t('marketingForm.title') }}</h2>
 
       <form
         class="asset-form"
@@ -102,7 +102,7 @@ async function handleSubmit() {
         </p>
 
         <label class="field">
-          <span>Nombre</span>
+          <span>{{ t('common.name') }}</span>
           <input
             v-model="name"
             type="text"
@@ -115,7 +115,7 @@ async function handleSubmit() {
         </label>
 
         <label class="field">
-          <span>Tipo</span>
+          <span>{{ t('marketingForm.type') }}</span>
           <select
             v-model="type"
             :disabled="isSaving"
@@ -125,13 +125,13 @@ async function handleSubmit() {
               :key="value"
               :value="value"
             >
-              {{ MARKETING_ASSET_TYPE_LABELS[value] }}
+              {{ t(MARKETING_ASSET_TYPE_I18N_KEYS[value]) }}
             </option>
           </select>
         </label>
 
         <label class="field">
-          <span>Imagen</span>
+          <span>{{ t('common.image') }}</span>
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"
@@ -146,7 +146,7 @@ async function handleSubmit() {
         <img
           v-if="previewUrl"
           :src="previewUrl"
-          alt="Vista previa"
+          :alt="t('common.imagePreviewAlt')"
           class="image-preview"
         >
 
@@ -157,14 +157,14 @@ async function handleSubmit() {
             :disabled="isSaving"
             @click="$emit('close')"
           >
-            Cancelar
+            {{ t('common.cancel') }}
           </button>
           <button
             type="submit"
             class="btn btn--primary"
             :disabled="!canSave"
           >
-            {{ isSaving ? 'Subiendo…' : 'Subir imagen' }}
+            {{ isSaving ? t('marketingForm.uploading') : t('marketingForm.upload') }}
           </button>
         </div>
       </form>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import EmptyState from '../components/shared/EmptyState.vue'
 import SkeletonList from '../components/shared/SkeletonList.vue'
 import ProductGridButton from '../components/pos/ProductGridButton.vue'
@@ -12,6 +13,7 @@ import { addPendingSale } from '../composables/useOfflineSalesDb'
 import { formatCentsAsPesos } from '../utils/money'
 import type { ApiError } from '../composables/useApi'
 
+const { t } = useI18n()
 const productsStore = useProductsStore()
 const salesStore = useSalesStore()
 const cart = useCart()
@@ -77,7 +79,7 @@ async function confirmSale() {
       await salesStore.createSale({ items, payment_method: paymentMethod.value, idempotency_key: idempotencyKey })
       cart.clear()
       isCartOpen.value = false
-      showSuccess('Venta registrada.')
+      showSuccess(t('pos.saleRegistered'))
     } else {
       await queueOffline(items, idempotencyKey)
     }
@@ -116,13 +118,13 @@ async function queueOffline(
   })
   cart.clear()
   isCartOpen.value = false
-  showSuccess('Venta guardada. Se sincronizará cuando vuelva la conexión.')
+  showSuccess(t('pos.saleQueuedOffline'))
 }
 </script>
 
 <template>
   <main class="pos-view">
-    <h1>Punto de venta</h1>
+    <h1>{{ t('nav.pos') }}</h1>
 
     <p
       v-if="successMessage"
@@ -136,7 +138,7 @@ async function queueOffline(
       class="banner banner--warning"
       role="status"
     >
-      Sin conexión — las ventas se guardarán y se sincronizarán automáticamente.
+      {{ t('pos.offlineBanner') }}
     </p>
 
     <SkeletonList
@@ -146,8 +148,8 @@ async function queueOffline(
 
     <EmptyState
       v-else-if="productsStore.loadError"
-      title="No se pudieron cargar los productos"
-      message="Ocurrió un error al conectar con el servidor. Intentá de nuevo."
+      :title="t('products.loadErrorTitle')"
+      :message="t('common.genericErrorRetry')"
     >
       <template #action>
         <button
@@ -155,15 +157,15 @@ async function queueOffline(
           class="btn"
           @click="retryLoad"
         >
-          Reintentar
+          {{ t('common.retry') }}
         </button>
       </template>
     </EmptyState>
 
     <EmptyState
       v-else-if="productsStore.items.length === 0"
-      title="No hay productos disponibles"
-      message="Agregá productos desde la sección de Productos antes de vender."
+      :title="t('pos.emptyTitle')"
+      :message="t('pos.emptyMessage')"
     />
 
     <div
@@ -172,7 +174,7 @@ async function queueOffline(
     >
       <section
         class="product-grid"
-        aria-label="Productos"
+        :aria-label="t('pos.productsAriaLabel')"
       >
         <ProductGridButton
           v-for="product in productsStore.items"

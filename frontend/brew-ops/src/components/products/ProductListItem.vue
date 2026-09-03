@@ -4,10 +4,13 @@
 // needs a new component like this one, never a change to ProductsView's
 // data layer. See src/stores/products.ts for where products actually come
 // from.
+import { useI18n } from 'vue-i18n'
 import type { Product } from '../../stores/products'
 import StatusBadge from '../shared/StatusBadge.vue'
 import { formatCentsAsPesos } from '../../utils/money'
-import { PRODUCT_CATEGORY_LABELS } from '../../utils/productCategory'
+import { PRODUCT_CATEGORY_I18N_KEYS } from '../../utils/productCategory'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   product: Product
@@ -28,14 +31,14 @@ const isLowStock = props.product.current_stock <= props.product.min_stock
         {{ product.name }}
       </p>
       <p class="product-meta">
-        {{ PRODUCT_CATEGORY_LABELS[product.category] }} ·
+        {{ t(PRODUCT_CATEGORY_I18N_KEYS[product.category]) }} ·
         {{ formatCentsAsPesos(product.sale_price_cents) }}
       </p>
       <p class="product-stock">
-        Stock: {{ product.current_stock }}
+        {{ t('products.stockLabel', { stock: product.current_stock }) }}
         <StatusBadge
           v-if="isLowStock"
-          label="Stock bajo"
+          :label="t('products.lowStockBadge')"
           variant="warning"
         />
       </p>
@@ -47,14 +50,14 @@ const isLowStock = props.product.current_stock <= props.product.min_stock
         class="product-action"
         @click="$emit('edit', product)"
       >
-        Editar
+        {{ t('common.edit') }}
       </button>
       <button
         type="button"
         class="product-action product-action--danger"
         @click="$emit('delete', product)"
       >
-        Eliminar
+        {{ t('common.delete') }}
       </button>
     </div>
 

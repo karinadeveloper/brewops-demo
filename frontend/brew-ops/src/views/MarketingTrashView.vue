@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onMounted, reactive } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import EmptyState from '../components/shared/EmptyState.vue'
 import SkeletonList from '../components/shared/SkeletonList.vue'
 import { useMarketingStore } from '../stores/marketing'
-import { MARKETING_ASSET_TYPE_LABELS } from '../utils/marketingAssetType'
+import { MARKETING_ASSET_TYPE_I18N_KEYS } from '../utils/marketingAssetType'
 
+const { t } = useI18n()
 const marketingStore = useMarketingStore()
 
 // Keyed by asset id, same as ProductsTrashView's restoreErrors — kept even
@@ -29,7 +31,7 @@ async function handleRestore(id: string) {
   try {
     await marketingStore.restoreAsset(id)
   } catch {
-    restoreErrors[id] = 'No se pudo restaurar la imagen. Intentá de nuevo.'
+    restoreErrors[id] = t('marketingTrash.restoreError')
   }
 }
 
@@ -41,12 +43,12 @@ function retryLoad() {
 <template>
   <main class="trash-view">
     <header class="trash-header">
-      <h1>Papelera de marketing</h1>
+      <h1>{{ t('marketingTrash.title') }}</h1>
       <RouterLink
         to="/marketing"
         class="btn"
       >
-        Volver a marketing
+        {{ t('marketingTrash.backToMarketing') }}
       </RouterLink>
     </header>
 
@@ -57,8 +59,8 @@ function retryLoad() {
 
     <EmptyState
       v-else-if="marketingStore.trashLoadError"
-      title="No se pudo cargar la papelera"
-      message="Ocurrió un error al conectar con el servidor."
+      :title="t('common.trashLoadError')"
+      :message="t('common.genericError')"
     >
       <template #action>
         <button
@@ -66,15 +68,15 @@ function retryLoad() {
           class="btn"
           @click="retryLoad"
         >
-          Reintentar
+          {{ t('common.retry') }}
         </button>
       </template>
     </EmptyState>
 
     <EmptyState
       v-else-if="marketingStore.trashedItems.length === 0"
-      title="La papelera está vacía"
-      message="Las imágenes que elimines aparecerán acá y podrás restaurarlas en cualquier momento."
+      :title="t('common.trashEmptyTitle')"
+      :message="t('marketingTrash.emptyMessage')"
     />
 
     <ul
@@ -98,12 +100,12 @@ function retryLoad() {
             {{ asset.name }}
           </p>
           <p class="trash-meta">
-            {{ MARKETING_ASSET_TYPE_LABELS[asset.type] }}
+            {{ t(MARKETING_ASSET_TYPE_I18N_KEYS[asset.type]) }}
           </p>
           <p class="trash-meta">
-            Eliminada el {{ dateFormatter.format(new Date(asset.deleted_at as string)) }}
+            {{ t('marketingTrash.deletedOn', { date: dateFormatter.format(new Date(asset.deleted_at as string)) }) }}
             <template v-if="asset.deleted_by_email">
-              por {{ asset.deleted_by_email }}
+              {{ t('common.deletedBy', { email: asset.deleted_by_email }) }}
             </template>
           </p>
         </div>
@@ -114,7 +116,7 @@ function retryLoad() {
             class="btn btn--primary"
             @click="handleRestore(asset.id)"
           >
-            Restaurar
+            {{ t('common.restore') }}
           </button>
         </div>
 

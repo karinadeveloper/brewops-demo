@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import SkeletonList from '../shared/SkeletonList.vue'
 import EmptyState from '../shared/EmptyState.vue'
 import type { Product } from '../../stores/products'
+
+const { t } = useI18n()
 
 defineProps<{
   items: Product[]
@@ -16,9 +19,9 @@ defineEmits<{ retry: [] }>()
 <template>
   <section
     class="low-stock"
-    aria-label="Alertas de stock bajo"
+    :aria-label="t('lowStock.sectionLabel')"
   >
-    <h2>Stock bajo</h2>
+    <h2>{{ t('lowStock.title') }}</h2>
 
     <SkeletonList
       v-if="isLoading"
@@ -27,8 +30,8 @@ defineEmits<{ retry: [] }>()
 
     <EmptyState
       v-else-if="error"
-      title="No se pudieron cargar las alertas"
-      message="Ocurrió un error al conectar con el servidor."
+      :title="t('lowStock.loadError')"
+      :message="t('common.genericError')"
     >
       <template #action>
         <button
@@ -36,15 +39,15 @@ defineEmits<{ retry: [] }>()
           class="btn"
           @click="$emit('retry')"
         >
-          Reintentar
+          {{ t('common.retry') }}
         </button>
       </template>
     </EmptyState>
 
     <EmptyState
       v-else-if="items.length === 0"
-      title="Todo el inventario está en buen nivel"
-      message="Ningún producto está en o por debajo de su stock mínimo."
+      :title="t('lowStock.allGoodTitle')"
+      :message="t('lowStock.allGoodMessage')"
     />
 
     <ul
@@ -59,14 +62,14 @@ defineEmits<{ retry: [] }>()
         <div class="low-stock-info">
           <span class="low-stock-name">{{ product.name }}</span>
           <span class="low-stock-detail">
-            Stock: {{ product.current_stock }} · mínimo: {{ product.min_stock }}
+            {{ t('lowStock.stockDetail', { stock: product.current_stock, min: product.min_stock }) }}
           </span>
         </div>
         <RouterLink
           :to="`/products?edit=${product.id}`"
           class="btn"
         >
-          Editar
+          {{ t('common.edit') }}
         </RouterLink>
       </li>
     </ul>

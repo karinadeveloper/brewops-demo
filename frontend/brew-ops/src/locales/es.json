@@ -1,0 +1,206 @@
+{
+  "app": {
+    "saleRejectedAlert": "No se pudo aplicar la venta del {date}: {message}"
+  },
+  "nav": {
+    "brand": "BrewOps",
+    "openMenu": "Abrir menú de navegación",
+    "mainNav": "Navegación principal",
+    "demoBanner": "Esto es una demo pública — los datos se reinician periódicamente y el uso de IA está limitado.",
+    "dashboard": "Dashboard",
+    "pos": "Punto de venta",
+    "salesHistory": "Historial de ventas",
+    "products": "Productos",
+    "marketing": "Marketing",
+    "logout": "Cerrar sesión"
+  },
+  "lang": {
+    "es": "ES",
+    "en": "EN",
+    "ariaLabel": "Seleccionar idioma"
+  },
+  "common": {
+    "retry": "Reintentar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "restore": "Restaurar",
+    "viewTrash": "Ver papelera",
+    "name": "Nombre",
+    "image": "Imagen",
+    "imagePreviewAlt": "Vista previa",
+    "genericError": "Ocurrió un error al conectar con el servidor.",
+    "genericErrorRetry": "Ocurrió un error al conectar con el servidor. Intentá de nuevo.",
+    "trashLoadError": "No se pudo cargar la papelera",
+    "trashEmptyTitle": "La papelera está vacía",
+    "deletedBy": "por {email}"
+  },
+  "login": {
+    "subtitle": "Inicia sesión para continuar",
+    "demoCredentialsPrefix": "Usa estas credenciales para explorar:",
+    "sessionExpired": "Tu sesión expiró, ingresa de nuevo.",
+    "invalidCredentials": "Email o contraseña incorrectos.",
+    "emailLabel": "Correo electrónico",
+    "passwordLabel": "Contraseña",
+    "submitting": "Ingresando…",
+    "submit": "Iniciar sesión"
+  },
+  "dashboard": {
+    "metricsLabel": "Métricas resumen",
+    "revenueTitle": "Ingresos del período",
+    "salesCountTitle": "Ventas del período",
+    "inventoryValueTitle": "Valor de inventario",
+    "revenueOverTimeLabel": "Ingresos en el tiempo",
+    "topProductsLabel": "Productos más vendidos",
+    "chartLoadError": "No se pudo cargar la gráfica",
+    "noSalesInPeriod": "No hay ventas registradas en este período."
+  },
+  "period": {
+    "today": "Hoy",
+    "last7": "Últimos 7 días",
+    "month": "Este mes",
+    "selectorLabel": "Seleccionar período"
+  },
+  "lowStock": {
+    "sectionLabel": "Alertas de stock bajo",
+    "title": "Stock bajo",
+    "loadError": "No se pudieron cargar las alertas",
+    "allGoodTitle": "Todo el inventario está en buen nivel",
+    "allGoodMessage": "Ningún producto está en o por debajo de su stock mínimo.",
+    "stockDetail": "Stock: {stock} · mínimo: {min}"
+  },
+  "metricCard": {
+    "loadError": "No se pudo cargar."
+  },
+  "category": {
+    "juice": "Jugo",
+    "water": "Agua",
+    "soda": "Refresco",
+    "other": "Otro"
+  },
+  "marketingType": {
+    "PRODUCT": "Producto",
+    "PROMOTION": "Promoción"
+  },
+  "charts": {
+    "revenueLabel": "Ingresos"
+  },
+  "products": {
+    "addProduct": "Agregar producto",
+    "searchPlaceholder": "Buscar por nombre…",
+    "searchAriaLabel": "Buscar productos por nombre",
+    "filterAriaLabel": "Filtrar por categoría",
+    "allCategories": "Todas las categorías",
+    "deleteConfirm": "¿Eliminar \"{name}\"? Podés restaurarlo después desde la papelera.",
+    "deleteError": "No se pudo eliminar el producto. Intentá de nuevo.",
+    "deepLinkError": "No se pudo abrir el producto solicitado. Buscalo manualmente en la lista.",
+    "loadErrorTitle": "No se pudieron cargar los productos",
+    "emptyTitle": "Aún no tenés productos",
+    "emptyMessage": "Agregá tu primer producto para empezar a llevar tu inventario.",
+    "addFirst": "Agregar tu primer producto",
+    "noResultsTitle": "Sin resultados",
+    "noResultsMessage": "No encontramos productos que coincidan con el filtro o la búsqueda actual.",
+    "prevPage": "Anterior",
+    "nextPage": "Siguiente",
+    "pageLabel": "Página {page}",
+    "lowStockBadge": "Stock bajo",
+    "stockLabel": "Stock: {stock}"
+  },
+  "productForm": {
+    "titleEdit": "Editar producto",
+    "name": "Nombre",
+    "category": "Categoría",
+    "salePrice": "Precio de venta (MXN)",
+    "cost": "Costo (MXN)",
+    "currentStock": "Stock actual",
+    "minStock": "Stock mínimo",
+    "uploading": "Subiendo imagen…",
+    "uploadError": "No se pudo subir la imagen. Verificá que sea un archivo JPEG, PNG o WebP e intentá de nuevo.",
+    "retryUpload": "Reintentar subida",
+    "saving": "Guardando…",
+    "saveChanges": "Guardar cambios",
+    "createProduct": "Crear producto",
+    "conflictMessage": "Este producto fue modificado por otra sesión, recargá para ver los cambios más recientes.",
+    "saveError": "No se pudo guardar el producto. Intentá de nuevo.",
+    "errors": {
+      "name": "El nombre es obligatorio.",
+      "salePrice": "El precio de venta no puede ser negativo.",
+      "cost": "El costo no puede ser negativo.",
+      "currentStock": "El stock actual debe ser un número entero, no negativo.",
+      "minStock": "El stock mínimo debe ser un número entero, no negativo."
+    }
+  },
+  "productsTrash": {
+    "title": "Papelera de productos",
+    "backToProducts": "Volver a productos",
+    "emptyMessage": "Los productos que elimines aparecerán acá y podrás restaurarlos en cualquier momento.",
+    "restoreError": "No se pudo restaurar el producto. Intentá de nuevo.",
+    "restoreSuggestion": "Ajustá el inventario de este producto antes de restaurarlo.",
+    "deletedOn": "Eliminado el {date}"
+  },
+  "pos": {
+    "offlineBanner": "Sin conexión — las ventas se guardarán y se sincronizarán automáticamente.",
+    "emptyTitle": "No hay productos disponibles",
+    "emptyMessage": "Agregá productos desde la sección de Productos antes de vender.",
+    "productsAriaLabel": "Productos",
+    "saleRegistered": "Venta registrada.",
+    "saleQueuedOffline": "Venta guardada. Se sincronizará cuando vuelva la conexión.",
+    "quantityAriaLabel": "Cantidad de {name}",
+    "removeAriaLabel": "Quitar {name}"
+  },
+  "cart": {
+    "ariaLabel": "Carrito de venta",
+    "title": "Carrito",
+    "empty": "Agregá productos tocando el grid.",
+    "total": "Total",
+    "paymentMethodLegend": "Método de pago",
+    "cash": "Efectivo",
+    "transfer": "Transferencia",
+    "confirming": "Confirmando…",
+    "confirmSale": "Confirmar venta"
+  },
+  "salesHistory": {
+    "loadErrorTitle": "No se pudo cargar el historial",
+    "emptyTitle": "Todavía no hay ventas",
+    "emptyMessage": "Las ventas que registres en el punto de venta aparecerán acá.",
+    "staleBanner": "No se pudo actualizar el historial desde el servidor — se muestran las ventas guardadas localmente.",
+    "pendingBadge": "Pendiente de sincronizar",
+    "errorBadge": "Error de sincronización",
+    "syncedBadge": "Sincronizada",
+    "detailError": "No se pudo cargar el detalle de la venta.",
+    "paymentMethodLabel": "Método de pago: {method}",
+    "businessErrorNote": "Esta venta no se aplicó por un conflicto de negocio — ajustá el inventario o la venta y volvé a registrarla manualmente; no se reintenta automáticamente.",
+    "retrying": "Reintentando…"
+  },
+  "marketing": {
+    "addImage": "Agregar imagen",
+    "deleteConfirm": "¿Eliminar \"{name}\"? Podés restaurarla después desde la papelera.",
+    "deleteError": "No se pudo eliminar la imagen. Intentá de nuevo.",
+    "loadErrorTitle": "No se pudieron cargar las imágenes",
+    "emptyTitle": "Todavía no tenés imágenes",
+    "emptyMessage": "Subí tu primera imagen de producto o promoción para compartir por WhatsApp.",
+    "addFirst": "Agregar tu primera imagen"
+  },
+  "marketingForm": {
+    "title": "Subir imagen",
+    "type": "Tipo",
+    "nameRequired": "Ingresá un nombre.",
+    "fileRequired": "Seleccioná una imagen.",
+    "uploading": "Subiendo…",
+    "upload": "Subir imagen",
+    "saveErrorType": "La imagen debe ser un archivo JPEG, PNG o WebP.",
+    "saveErrorGeneric": "No se pudo subir la imagen. Intentá de nuevo."
+  },
+  "marketingTrash": {
+    "title": "Papelera de marketing",
+    "backToMarketing": "Volver a marketing",
+    "emptyMessage": "Las imágenes que elimines aparecerán acá y podrás restaurarlas en cualquier momento.",
+    "restoreError": "No se pudo restaurar la imagen. Intentá de nuevo.",
+    "deletedOn": "Eliminada el {date}"
+  },
+  "sale": {
+    "businessRejectionDefault": "La venta fue rechazada por el servidor.",
+    "transportError": "No se pudo conectar con el servidor."
+  }
+}

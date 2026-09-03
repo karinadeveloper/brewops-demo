@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -22,13 +23,14 @@ import { formatDayLabel } from '../../utils/period'
 // nothing visibly breaks.
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend)
 
+const { t } = useI18n()
 const props = defineProps<{ points: RevenuePoint[] }>()
 
 const chartData = computed(() => ({
   labels: props.points.map((p) => (p.day ? formatDayLabel(p.day) : '')),
   datasets: [
     {
-      label: 'Ingresos',
+      label: t('charts.revenueLabel'),
       data: props.points.map((p) => centsToPesos(p.total_cents)),
       borderColor: 'hsla(160, 60%, 40%, 1)',
       backgroundColor: 'hsla(160, 60%, 40%, 0.15)',

@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../../stores/auth'
+import LangToggle from './LangToggle.vue'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const isMobileMenuOpen = ref(false)
 
@@ -16,13 +19,13 @@ const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 // here — each is one "Ver papelera" click away from its own list view
 // (ProductsView, MarketingView), which scales better than growing this
 // list by one entry per resource that ever gets a trash view.
-const links = [
-  { to: '/', label: 'Dashboard' },
-  { to: '/pos', label: 'Punto de venta' },
-  { to: '/sales', label: 'Historial de ventas' },
-  { to: '/products', label: 'Productos' },
-  { to: '/marketing', label: 'Marketing' },
-]
+const links = computed(() => [
+  { to: '/', label: t('nav.dashboard') },
+  { to: '/pos', label: t('nav.pos') },
+  { to: '/sales', label: t('nav.salesHistory') },
+  { to: '/products', label: t('nav.products') },
+  { to: '/marketing', label: t('nav.marketing') },
+])
 
 function closeMobileMenu() {
   isMobileMenuOpen.value = false
@@ -36,13 +39,13 @@ function handleLogout() {
 
 <template>
   <header class="app-nav-topbar">
-    <span class="app-nav-brand">BrewOps</span>
+    <span class="app-nav-brand">{{ t('nav.brand') }}</span>
     <button
       type="button"
       class="app-nav-toggle"
       :aria-expanded="isMobileMenuOpen"
       aria-controls="app-nav-menu"
-      aria-label="Abrir menú de navegación"
+      :aria-label="t('nav.openMenu')"
       @click="isMobileMenuOpen = !isMobileMenuOpen"
     >
       ☰
@@ -53,14 +56,15 @@ function handleLogout() {
     id="app-nav-menu"
     class="app-nav"
     :class="{ 'app-nav--open': isMobileMenuOpen }"
-    aria-label="Navegación principal"
+    :aria-label="t('nav.mainNav')"
   >
-    <span class="app-nav-brand app-nav-brand--sidebar">BrewOps</span>
+    <span class="app-nav-brand app-nav-brand--sidebar">{{ t('nav.brand') }}</span>
+    <LangToggle />
     <p
       v-if="isDemoMode"
       class="app-nav-demo-banner"
     >
-      Esto es una demo pública — los datos se reinician periódicamente y el uso de IA está limitado.
+      {{ t('nav.demoBanner') }}
     </p>
     <ul class="app-nav-list">
       <li
@@ -81,7 +85,7 @@ function handleLogout() {
       class="app-nav-logout"
       @click="handleLogout"
     >
-      Cerrar sesión
+      {{ t('nav.logout') }}
     </button>
   </nav>
 

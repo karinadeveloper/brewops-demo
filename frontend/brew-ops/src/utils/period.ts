@@ -7,11 +7,17 @@
 
 export type Period = 'today' | 'last7' | 'month'
 
-export const PERIOD_OPTIONS: { value: Period; label: string }[] = [
-  { value: 'today', label: 'Hoy' },
-  { value: 'last7', label: 'Últimos 7 días' },
-  { value: 'month', label: 'Este mes' },
-]
+export const PERIOD_VALUES: Period[] = ['today', 'last7', 'month']
+
+// i18n keys (see src/locales/*.json's "period" namespace) rather than
+// literal labels — PeriodSelector.vue resolves these through useI18n so the
+// selector's chrome text follows the ES/EN toggle. See CLAUDE.md's DEMO
+// MODE section.
+export const PERIOD_I18N_KEYS: Record<Period, string> = {
+  today: 'period.today',
+  last7: 'period.last7',
+  month: 'period.month',
+}
 
 export interface PeriodRange {
   from: string

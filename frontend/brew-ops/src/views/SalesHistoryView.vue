@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import EmptyState from '../components/shared/EmptyState.vue'
 import SkeletonList from '../components/shared/SkeletonList.vue'
 import StatusBadge from '../components/shared/StatusBadge.vue'
@@ -12,6 +13,7 @@ type HistoryRow =
   | { kind: 'synced'; id: string; createdAt: string; totalCents: number; paymentMethod: string }
   | { kind: 'pending' | 'error'; id: string; createdAt: string; totalCents: number; paymentMethod: string; pendingSale: PendingSale }
 
+const { t } = useI18n()
 const salesStore = useSalesStore()
 const { retry, syncVersion } = useSaleSync()
 
@@ -88,7 +90,7 @@ async function toggleDetail(row: HistoryRow) {
   try {
     saleDetail.value = await salesStore.fetchSaleDetail(row.id)
   } catch {
-    detailError.value = 'No se pudo cargar el detalle de la venta.'
+    detailError.value = t('salesHistory.detailError')
   }
 }
 
@@ -109,7 +111,7 @@ function retryLoad() {
 
 <template>
   <main class="history-view">
-    <h1>Historial de ventas</h1>
+    <h1>{{ t('nav.salesHistory') }}</h1>
 
     <SkeletonList
       v-if="salesStore.isLoading"
@@ -118,8 +120,8 @@ function retryLoad() {
 
     <EmptyState
       v-else-if="salesStore.loadError && rows.length === 0"
-      title="No se pudo cargar el historial"
-      message="Ocurrió un error al conectar con el servidor."
+      :title="t('salesHistory.loadErrorTitle')"
+      :message="t('common.genericError')"
     >
       <template #action>
         <button
@@ -127,15 +129,15 @@ function retryLoad() {
           class="btn"
           @click="retryLoad"
         >
-          Reintentar
+          {{ t('common.retry') }}
         </button>
       </template>
     </EmptyState>
 
     <EmptyState
       v-else-if="rows.length === 0"
-      title="Todavía no hay ventas"
-      message="Las ventas que registres en el punto de venta aparecerán acá."
+      :title="t('salesHistory.emptyTitle')"
+      :message="t('salesHistory.emptyMessage')"
     />
 
     <!-- A failed fetch of confirmed sales must never hide locally-queued
@@ -149,13 +151,13 @@ function retryLoad() {
       class="banner banner--error"
       role="alert"
     >
-      No se pudo actualizar el historial desde el servidor — se muestran las ventas guardadas localmente.
+      {{ t('salesHistory.staleBanner') }}
       <button
         type="button"
         class="btn-link"
         @click="retryLoad"
       >
-        Reintentar
+        {{ t('common.retry') }}
       </button>
     </p>
 
@@ -177,17 +179,17 @@ function retryLoad() {
           <span class="sale-total">{{ formatCentsAsPesos(row.totalCents) }}</span>
           <StatusBadge
             v-if="row.kind === 'pending'"
-            label="Pendiente de sincronizar"
+            :label="t('salesHistory.pendingBadge')"
             variant="warning"
           />
           <StatusBadge
             v-else-if="row.kind === 'error'"
-            label="Error de sincronización"
+            :label="t('salesHistory.errorBadge')"
             variant="error"
           />
           <StatusBadge
             v-else
-            label="Sincronizada"
+            :label="t('salesHistory.syncedBadge')"
             variant="success"
           />
         </button>
@@ -209,14 +211,13 @@ function retryLoad() {
             :disabled="retryingId === row.id"
             @click="handleRetry(row.id)"
           >
-            {{ retryingId === row.id ? 'Reintentando…' : 'Reintentar' }}
+            {{ retryingId === row.id ? t('salesHistory.retrying') : t('common.retry') }}
           </button>
           <p
             v-else
             class="sale-error-note"
           >
-            Esta venta no se aplicó por un conflicto de negocio — ajustá el inventario o la venta y volvé a
-            registrarla manualmente; no se reintenta automáticamente.
+            {{ t('salesHistory.businessErrorNote') }}
           </p>
         </div>
 
@@ -232,7 +233,7 @@ function retryLoad() {
             {{ detailError }}
           </p>
           <template v-else-if="row.kind === 'synced' && saleDetail">
-            <p>Método de pago: {{ saleDetail.payment_method === 'CASH' ? 'Efectivo' : 'Transferencia' }}</p>
+            <p>{{ t('salesHistory.paymentMethodLabel', { method: saleDetail.payment_method === 'CASH' ? t('cart.cash') : t('cart.transfer') }) }}</p>
             <ul>
               <li
                 v-for="(item, index) in saleDetail.items"
@@ -244,8 +245,7 @@ function retryLoad() {
           </template>
           <template v-else-if="row.kind !== 'synced'">
             <p>
-              Método de pago:
-              {{ row.pendingSale.payment_method === 'CASH' ? 'Efectivo' : 'Transferencia' }}
+              {{ t('salesHistory.paymentMethodLabel', { method: row.pendingSale.payment_method === 'CASH' ? t('cart.cash') : t('cart.transfer') }) }}
             </p>
             <ul>
               <li

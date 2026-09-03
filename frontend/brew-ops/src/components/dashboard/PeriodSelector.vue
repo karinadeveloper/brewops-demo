@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { PERIOD_OPTIONS, type Period } from '../../utils/period'
+import { useI18n } from 'vue-i18n'
+import { PERIOD_VALUES, PERIOD_I18N_KEYS, type Period } from '../../utils/period'
+
+const { t } = useI18n()
 
 defineProps<{ modelValue: Period }>()
 const emit = defineEmits<{ 'update:modelValue': [value: Period] }>()
@@ -9,18 +12,18 @@ const emit = defineEmits<{ 'update:modelValue': [value: Period] }>()
   <div
     class="period-selector"
     role="group"
-    aria-label="Seleccionar período"
+    :aria-label="t('period.selectorLabel')"
   >
     <button
-      v-for="option in PERIOD_OPTIONS"
-      :key="option.value"
+      v-for="value in PERIOD_VALUES"
+      :key="value"
       type="button"
       class="period-btn"
-      :class="{ 'period-btn--active': modelValue === option.value }"
-      :aria-pressed="modelValue === option.value"
-      @click="emit('update:modelValue', option.value)"
+      :class="{ 'period-btn--active': modelValue === value }"
+      :aria-pressed="modelValue === value"
+      @click="emit('update:modelValue', value)"
     >
-      {{ option.label }}
+      {{ t(PERIOD_I18N_KEYS[value]) }}
     </button>
   </div>
 </template>

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 defineProps<{
   title: string
   value: string
@@ -23,13 +27,13 @@ defineEmits<{ retry: [] }>()
       v-else-if="error"
       class="metric-error"
     >
-      No se pudo cargar.
+      {{ t('metricCard.loadError') }}
       <button
         type="button"
         class="btn-link"
         @click="$emit('retry')"
       >
-        Reintentar
+        {{ t('common.retry') }}
       </button>
     </p>
     <p

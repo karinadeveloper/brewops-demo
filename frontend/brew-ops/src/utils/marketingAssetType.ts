@@ -1,11 +1,11 @@
 import type { MarketingAssetType } from '../stores/marketing'
 
-// Spanish display labels for the fixed type enum — CLAUDE.md's language
-// policy puts all user-facing text in Spanish, while the value itself
-// stays in English to match the backend's CHECK constraint.
-export const MARKETING_ASSET_TYPE_LABELS: Record<MarketingAssetType, string> = {
-  PRODUCT: 'Producto',
-  PROMOTION: 'Promoción',
+// i18n keys (see src/locales/*.json's "marketingType" namespace) for the
+// fixed type enum's display label — the value itself stays in English to
+// match the backend's CHECK constraint and is never translated.
+export const MARKETING_ASSET_TYPE_I18N_KEYS: Record<MarketingAssetType, string> = {
+  PRODUCT: 'marketingType.PRODUCT',
+  PROMOTION: 'marketingType.PROMOTION',
 }
 
 export const MARKETING_ASSET_TYPES: MarketingAssetType[] = ['PRODUCT', 'PROMOTION']

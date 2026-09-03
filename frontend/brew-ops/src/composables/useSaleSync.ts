@@ -1,4 +1,5 @@
 import { ref, watch, type Ref } from 'vue'
+import { i18n } from '../i18n'
 import { useApi, type ApiError } from './useApi'
 import { useConnectivity } from './useConnectivity'
 import {
@@ -52,7 +53,7 @@ async function syncOne(sale: PendingSale, onBusinessRejection?: (sale: PendingSa
       // A real HTTP response came back — the backend rejected this sale on
       // business grounds (e.g. insufficient stock, per CLAUDE.md's Sync UX
       // contract). Never auto-retried: the user must decide what to do.
-      const message = apiError.message || 'La venta fue rechazada por el servidor.'
+      const message = apiError.message || i18n.global.t('sale.businessRejectionDefault')
       await updatePendingSale({ ...sale, status: 'SYNC_ERROR', errorKind: 'business', errorMessage: message })
       onBusinessRejection?.(sale, message)
     } else {
@@ -65,7 +66,7 @@ async function syncOne(sale: PendingSale, onBusinessRejection?: (sale: PendingSa
         ...sale,
         status: 'SYNC_ERROR',
         errorKind: 'transport',
-        errorMessage: 'No se pudo conectar con el servidor.',
+        errorMessage: i18n.global.t('sale.transportError'),
       })
     }
   }

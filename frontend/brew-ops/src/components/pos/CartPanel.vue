@@ -4,8 +4,11 @@
 // narrow screens, switched purely by CSS media queries (see the scoped
 // style) — isOpen only matters for the mobile transform/close button;
 // desktop widths force the panel visible regardless of it.
+import { useI18n } from 'vue-i18n'
 import type { CartItem } from '../../composables/useCart'
 import { formatCentsAsPesos } from '../../utils/money'
+
+const { t } = useI18n()
 
 defineProps<{
   items: CartItem[]
@@ -34,16 +37,16 @@ function onQuantityInput(productId: string, event: Event) {
   <aside
     class="cart-panel"
     :class="{ 'cart-panel--open': isOpen }"
-    aria-label="Carrito de venta"
+    :aria-label="t('cart.ariaLabel')"
   >
     <div class="cart-header">
-      <h2>Carrito</h2>
+      <h2>{{ t('cart.title') }}</h2>
       <button
         type="button"
         class="cart-close"
         @click="$emit('close')"
       >
-        Cerrar
+        {{ t('common.close') }}
       </button>
     </div>
 
@@ -51,7 +54,7 @@ function onQuantityInput(productId: string, event: Event) {
       v-if="items.length === 0"
       class="cart-empty"
     >
-      Agregá productos tocando el grid.
+      {{ t('cart.empty') }}
     </p>
 
     <ul
@@ -69,14 +72,14 @@ function onQuantityInput(productId: string, event: Event) {
           min="1"
           class="cart-item-quantity"
           :value="item.quantity"
-          :aria-label="`Cantidad de ${item.name}`"
+          :aria-label="t('pos.quantityAriaLabel', { name: item.name })"
           @change="onQuantityInput(item.productId, $event)"
         >
         <span class="cart-item-subtotal">{{ formatCentsAsPesos(item.unitPriceCents * item.quantity) }}</span>
         <button
           type="button"
           class="cart-item-remove"
-          :aria-label="`Quitar ${item.name}`"
+          :aria-label="t('pos.removeAriaLabel', { name: item.name })"
           @click="$emit('remove', item.productId)"
         >
           ✕
@@ -85,12 +88,12 @@ function onQuantityInput(productId: string, event: Event) {
     </ul>
 
     <div class="cart-total">
-      <span>Total</span>
+      <span>{{ t('cart.total') }}</span>
       <strong>{{ formatCentsAsPesos(totalCents) }}</strong>
     </div>
 
     <fieldset class="payment-method">
-      <legend>Método de pago</legend>
+      <legend>{{ t('cart.paymentMethodLegend') }}</legend>
       <label>
         <input
           type="radio"
@@ -99,7 +102,7 @@ function onQuantityInput(productId: string, event: Event) {
           :checked="paymentMethod === 'CASH'"
           @change="$emit('update:paymentMethod', 'CASH')"
         >
-        Efectivo
+        {{ t('cart.cash') }}
       </label>
       <label>
         <input
@@ -109,7 +112,7 @@ function onQuantityInput(productId: string, event: Event) {
           :checked="paymentMethod === 'TRANSFER'"
           @change="$emit('update:paymentMethod', 'TRANSFER')"
         >
-        Transferencia
+        {{ t('cart.transfer') }}
       </label>
     </fieldset>
 
@@ -127,7 +130,7 @@ function onQuantityInput(productId: string, event: Event) {
       :disabled="items.length === 0 || isSubmitting"
       @click="$emit('confirm')"
     >
-      {{ isSubmitting ? 'Confirmando…' : 'Confirmar venta' }}
+      {{ isSubmitting ? t('cart.confirming') : t('cart.confirmSale') }}
     </button>
   </aside>
 </template>

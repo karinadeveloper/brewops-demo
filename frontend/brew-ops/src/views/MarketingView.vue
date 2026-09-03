@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import EmptyState from '../components/shared/EmptyState.vue'
 import SkeletonList from '../components/shared/SkeletonList.vue'
 import MarketingAssetCard from '../components/marketing/MarketingAssetCard.vue'
 import MarketingAssetFormModal from '../components/marketing/MarketingAssetFormModal.vue'
 import { useMarketingStore, type MarketingAsset } from '../stores/marketing'
 
+const { t } = useI18n()
 const marketingStore = useMarketingStore()
 
 const showModal = ref(false)
@@ -21,7 +23,7 @@ function retryLoad() {
 }
 
 async function handleDelete(asset: MarketingAsset) {
-  const confirmed = window.confirm(`¿Eliminar "${asset.name}"? Podés restaurarla después desde la papelera.`)
+  const confirmed = window.confirm(t('marketing.deleteConfirm', { name: asset.name }))
   if (!confirmed) {
     return
   }
@@ -29,7 +31,7 @@ async function handleDelete(asset: MarketingAsset) {
   try {
     await marketingStore.softDeleteAsset(asset.id)
   } catch {
-    deleteError.value = 'No se pudo eliminar la imagen. Intentá de nuevo.'
+    deleteError.value = t('marketing.deleteError')
   }
 }
 </script>
@@ -37,20 +39,20 @@ async function handleDelete(asset: MarketingAsset) {
 <template>
   <main class="marketing-view">
     <header class="marketing-header">
-      <h1>Marketing</h1>
+      <h1>{{ t('nav.marketing') }}</h1>
       <div class="marketing-header-actions">
         <RouterLink
           to="/marketing/trash"
           class="btn"
         >
-          Ver papelera
+          {{ t('common.viewTrash') }}
         </RouterLink>
         <button
           type="button"
           class="btn btn--primary"
           @click="showModal = true"
         >
-          Agregar imagen
+          {{ t('marketing.addImage') }}
         </button>
       </div>
     </header>
@@ -70,8 +72,8 @@ async function handleDelete(asset: MarketingAsset) {
 
     <EmptyState
       v-else-if="marketingStore.loadError"
-      title="No se pudieron cargar las imágenes"
-      message="Ocurrió un error al conectar con el servidor. Intentá de nuevo."
+      :title="t('marketing.loadErrorTitle')"
+      :message="t('common.genericErrorRetry')"
     >
       <template #action>
         <button
@@ -79,15 +81,15 @@ async function handleDelete(asset: MarketingAsset) {
           class="btn"
           @click="retryLoad"
         >
-          Reintentar
+          {{ t('common.retry') }}
         </button>
       </template>
     </EmptyState>
 
     <EmptyState
       v-else-if="marketingStore.items.length === 0"
-      title="Todavía no tenés imágenes"
-      message="Subí tu primera imagen de producto o promoción para compartir por WhatsApp."
+      :title="t('marketing.emptyTitle')"
+      :message="t('marketing.emptyMessage')"
     >
       <template #action>
         <button
@@ -95,7 +97,7 @@ async function handleDelete(asset: MarketingAsset) {
           class="btn btn--primary"
           @click="showModal = true"
         >
-          Agregar tu primera imagen
+          {{ t('marketing.addFirst') }}
         </button>
       </template>
     </EmptyState>

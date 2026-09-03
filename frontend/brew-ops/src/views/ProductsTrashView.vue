@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { onMounted, reactive } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import EmptyState from '../components/shared/EmptyState.vue'
 import SkeletonList from '../components/shared/SkeletonList.vue'
 import { useProductsStore } from '../stores/products'
 import { formatCentsAsPesos } from '../utils/money'
 import type { ApiError } from '../composables/useApi'
 
+const { t } = useI18n()
 const productsStore = useProductsStore()
 
 // Keyed by product id — restoring one product failing (e.g. negative
@@ -37,7 +39,7 @@ async function handleRestore(id: string) {
       // doesn't exist as of this session.
       restoreErrors[id] = apiError.message
     } else {
-      restoreErrors[id] = 'No se pudo restaurar el producto. Intentá de nuevo.'
+      restoreErrors[id] = t('productsTrash.restoreError')
     }
   }
 }
@@ -50,12 +52,12 @@ function retryLoad() {
 <template>
   <main class="trash-view">
     <header class="trash-header">
-      <h1>Papelera de productos</h1>
+      <h1>{{ t('productsTrash.title') }}</h1>
       <RouterLink
         to="/products"
         class="btn"
       >
-        Volver a productos
+        {{ t('productsTrash.backToProducts') }}
       </RouterLink>
     </header>
 
@@ -66,8 +68,8 @@ function retryLoad() {
 
     <EmptyState
       v-else-if="productsStore.trashLoadError"
-      title="No se pudo cargar la papelera"
-      message="Ocurrió un error al conectar con el servidor."
+      :title="t('common.trashLoadError')"
+      :message="t('common.genericError')"
     >
       <template #action>
         <button
@@ -75,15 +77,15 @@ function retryLoad() {
           class="btn"
           @click="retryLoad"
         >
-          Reintentar
+          {{ t('common.retry') }}
         </button>
       </template>
     </EmptyState>
 
     <EmptyState
       v-else-if="productsStore.trashedItems.length === 0"
-      title="La papelera está vacía"
-      message="Los productos que elimines aparecerán acá y podrás restaurarlos en cualquier momento."
+      :title="t('common.trashEmptyTitle')"
+      :message="t('productsTrash.emptyMessage')"
     />
 
     <ul
@@ -103,9 +105,9 @@ function retryLoad() {
             {{ formatCentsAsPesos(product.sale_price_cents) }}
           </p>
           <p class="trash-meta">
-            Eliminado el {{ dateFormatter.format(new Date(product.deleted_at as string)) }}
+            {{ t('productsTrash.deletedOn', { date: dateFormatter.format(new Date(product.deleted_at as string)) }) }}
             <template v-if="product.deleted_by_email">
-              por {{ product.deleted_by_email }}
+              {{ t('common.deletedBy', { email: product.deleted_by_email }) }}
             </template>
           </p>
         </div>
@@ -116,7 +118,7 @@ function retryLoad() {
             class="btn btn--primary"
             @click="handleRestore(product.id)"
           >
-            Restaurar
+            {{ t('common.restore') }}
           </button>
         </div>
 
@@ -131,7 +133,7 @@ function retryLoad() {
             {{ restoreErrors[product.id] }}
           </p>
           <p class="trash-error-suggestion">
-            Ajustá el inventario de este producto antes de restaurarlo.
+            {{ t('productsTrash.restoreSuggestion') }}
           </p>
         </div>
       </li>

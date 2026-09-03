@@ -3,10 +3,12 @@
 // lifetime regardless of which view is currently active — not just while
 // SalesHistoryView happens to be mounted.
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useSaleSync } from './composables/useSaleSync'
 import AppNav from './components/shared/AppNav.vue'
 
 const route = useRoute()
+const { t } = useI18n()
 
 const dateFormatter = new Intl.DateTimeFormat('es-MX', {
   dateStyle: 'medium',
@@ -22,7 +24,7 @@ useSaleSync((sale, message) => {
   // of the current view — a toast/notification system would be a nicer
   // future upgrade, but none exists in this codebase yet.
   window.alert(
-    `No se pudo aplicar la venta del ${dateFormatter.format(new Date(sale.createdAt))}: ${message}`,
+    t('app.saleRejectedAlert', { date: dateFormatter.format(new Date(sale.createdAt)), message }),
   )
 })
 </script>

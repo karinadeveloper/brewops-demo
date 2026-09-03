@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
+import LangToggle from '../components/shared/LangToggle.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
@@ -39,7 +42,7 @@ async function handleSubmit() {
   } catch {
     // Deliberately generic — never reveal whether the email or the
     // password was the one that didn't match.
-    errorMessage.value = 'Email o contraseña incorrectos.'
+    errorMessage.value = t('login.invalidCredentials')
   } finally {
     isSubmitting.value = false
   }
@@ -52,25 +55,29 @@ async function handleSubmit() {
       class="login-card"
       @submit.prevent="handleSubmit"
     >
+      <div class="login-lang">
+        <LangToggle />
+      </div>
+
       <h1 class="login-title">
         BrewOps
       </h1>
       <p class="login-subtitle">
-        Inicia sesión para continuar
+        {{ t('login.subtitle') }}
       </p>
 
       <p
         v-if="isDemoMode"
         class="login-banner login-banner--info"
       >
-        Usa estas credenciales para explorar: <strong>demo@brewops.mx</strong> / <strong>Demo2026!</strong>
+        {{ t('login.demoCredentialsPrefix') }} <strong>demo@brewops.mx</strong> / <strong>Demo2026!</strong>
       </p>
       <p
         v-if="sessionExpired"
         class="login-banner login-banner--warning"
         role="alert"
       >
-        Tu sesión expiró, ingresa de nuevo.
+        {{ t('login.sessionExpired') }}
       </p>
       <p
         v-if="errorMessage"
@@ -81,7 +88,7 @@ async function handleSubmit() {
       </p>
 
       <label class="login-field">
-        <span>Correo electrónico</span>
+        <span>{{ t('login.emailLabel') }}</span>
         <input
           v-model="email"
           type="email"
@@ -92,7 +99,7 @@ async function handleSubmit() {
       </label>
 
       <label class="login-field">
-        <span>Contraseña</span>
+        <span>{{ t('login.passwordLabel') }}</span>
         <input
           v-model="password"
           type="password"
@@ -107,7 +114,7 @@ async function handleSubmit() {
         class="login-submit"
         :disabled="isSubmitting"
       >
-        {{ isSubmitting ? 'Ingresando…' : 'Iniciar sesión' }}
+        {{ isSubmitting ? t('login.submitting') : t('login.submit') }}
       </button>
     </form>
   </main>
@@ -133,6 +140,11 @@ async function handleSubmit() {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+}
+
+.login-lang {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .login-title {

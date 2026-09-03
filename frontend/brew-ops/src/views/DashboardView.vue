@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import EmptyState from '../components/shared/EmptyState.vue'
 import SkeletonList from '../components/shared/SkeletonList.vue'
 import MetricCard from '../components/dashboard/MetricCard.vue'
@@ -11,6 +12,7 @@ import { useDashboardStore } from '../stores/dashboard'
 import { formatCentsAsPesos } from '../utils/money'
 import type { Period } from '../utils/period'
 
+const { t } = useI18n()
 const dashboard = useDashboardStore()
 
 onMounted(() => {
@@ -25,7 +27,7 @@ function onPeriodChange(period: Period) {
 <template>
   <main class="dashboard">
     <header class="dashboard-header">
-      <h1>Dashboard</h1>
+      <h1>{{ t('nav.dashboard') }}</h1>
       <PeriodSelector
         :model-value="dashboard.period"
         @update:model-value="onPeriodChange"
@@ -34,24 +36,24 @@ function onPeriodChange(period: Period) {
 
     <section
       class="metric-cards"
-      aria-label="Métricas resumen"
+      :aria-label="t('dashboard.metricsLabel')"
     >
       <MetricCard
-        title="Ingresos del período"
+        :title="t('dashboard.revenueTitle')"
         :value="formatCentsAsPesos(dashboard.revenueTotalCents)"
         :is-loading="dashboard.isLoadingRevenue"
         :error="dashboard.revenueError"
         @retry="dashboard.loadRevenue"
       />
       <MetricCard
-        title="Ventas del período"
+        :title="t('dashboard.salesCountTitle')"
         :value="String(dashboard.salesCount)"
         :is-loading="dashboard.isLoadingSalesCount"
         :error="dashboard.salesCountError"
         @retry="dashboard.loadSalesCount"
       />
       <MetricCard
-        title="Valor de inventario"
+        :title="t('dashboard.inventoryValueTitle')"
         :value="formatCentsAsPesos(dashboard.inventoryValueCents)"
         :is-loading="dashboard.isLoadingInventoryValue"
         :error="dashboard.inventoryValueError"
@@ -68,17 +70,17 @@ function onPeriodChange(period: Period) {
 
     <section
       class="chart-section"
-      aria-label="Ingresos en el tiempo"
+      :aria-label="t('dashboard.revenueOverTimeLabel')"
     >
-      <h2>Ingresos en el tiempo</h2>
+      <h2>{{ t('dashboard.revenueOverTimeLabel') }}</h2>
       <SkeletonList
         v-if="dashboard.isLoadingRevenue"
         :rows="1"
       />
       <EmptyState
         v-else-if="dashboard.revenueError"
-        title="No se pudo cargar la gráfica"
-        message="Ocurrió un error al conectar con el servidor."
+        :title="t('dashboard.chartLoadError')"
+        :message="t('common.genericError')"
       >
         <template #action>
           <button
@@ -86,13 +88,13 @@ function onPeriodChange(period: Period) {
             class="btn"
             @click="dashboard.loadRevenue"
           >
-            Reintentar
+            {{ t('common.retry') }}
           </button>
         </template>
       </EmptyState>
       <EmptyState
         v-else-if="dashboard.revenuePoints.length === 0"
-        message="No hay ventas registradas en este período."
+        :message="t('dashboard.noSalesInPeriod')"
       />
       <RevenueChart
         v-else
@@ -102,17 +104,17 @@ function onPeriodChange(period: Period) {
 
     <section
       class="chart-section"
-      aria-label="Productos más vendidos"
+      :aria-label="t('dashboard.topProductsLabel')"
     >
-      <h2>Productos más vendidos</h2>
+      <h2>{{ t('dashboard.topProductsLabel') }}</h2>
       <SkeletonList
         v-if="dashboard.isLoadingTopProducts"
         :rows="1"
       />
       <EmptyState
         v-else-if="dashboard.topProductsError"
-        title="No se pudo cargar la gráfica"
-        message="Ocurrió un error al conectar con el servidor."
+        :title="t('dashboard.chartLoadError')"
+        :message="t('common.genericError')"
       >
         <template #action>
           <button
@@ -120,13 +122,13 @@ function onPeriodChange(period: Period) {
             class="btn"
             @click="dashboard.loadTopProducts"
           >
-            Reintentar
+            {{ t('common.retry') }}
           </button>
         </template>
       </EmptyState>
       <EmptyState
         v-else-if="dashboard.topProducts.length === 0"
-        message="No hay ventas registradas en este período."
+        :message="t('dashboard.noSalesInPeriod')"
       />
       <TopProductsChart
         v-else

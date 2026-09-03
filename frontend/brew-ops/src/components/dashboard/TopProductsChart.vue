@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Bar } from 'vue-chartjs'
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend, type TooltipItem } from 'chart.js'
 import type { TopProduct } from '../../stores/dashboard'
@@ -7,13 +8,14 @@ import { centsToPesos, formatCentsAsPesos } from '../../utils/money'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 
+const { t } = useI18n()
 const props = defineProps<{ products: TopProduct[] }>()
 
 const chartData = computed(() => ({
   labels: props.products.map((p) => p.name),
   datasets: [
     {
-      label: 'Ingresos',
+      label: t('charts.revenueLabel'),
       data: props.products.map((p) => centsToPesos(p.revenue_cents)),
       backgroundColor: 'hsla(28, 85%, 55%, 0.75)',
     },

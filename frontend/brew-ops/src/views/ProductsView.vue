@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import EmptyState from '../components/shared/EmptyState.vue'
 import SkeletonList from '../components/shared/SkeletonList.vue'
 import ProductListItem from '../components/products/ProductListItem.vue'
 import ProductFormModal from '../components/products/ProductFormModal.vue'
 import { useProductsStore, type Product, type ProductCategory } from '../stores/products'
-import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_LABELS } from '../utils/productCategory'
+import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_I18N_KEYS } from '../utils/productCategory'
 
+const { t } = useI18n()
 const productsStore = useProductsStore()
 const router = useRouter()
 
@@ -41,7 +43,7 @@ async function openFromDeepLink() {
     const product = await productsStore.getProduct(id)
     openEditModal(product)
   } catch {
-    deepLinkError.value = 'No se pudo abrir el producto solicitado. Buscalo manualmente en la lista.'
+    deepLinkError.value = t('products.deepLinkError')
   } finally {
     void router.replace({ path: '/products' })
   }
@@ -65,7 +67,7 @@ function closeModal() {
 }
 
 async function handleDelete(product: Product) {
-  const confirmed = window.confirm(`¿Eliminar "${product.name}"? Podés restaurarlo después desde la papelera.`)
+  const confirmed = window.confirm(t('products.deleteConfirm', { name: product.name }))
   if (!confirmed) {
     return
   }
@@ -73,7 +75,7 @@ async function handleDelete(product: Product) {
   try {
     await productsStore.softDeleteProduct(product.id)
   } catch {
-    deleteError.value = 'No se pudo eliminar el producto. Intentá de nuevo.'
+    deleteError.value = t('products.deleteError')
   }
 }
 
@@ -94,20 +96,20 @@ function goToPage(page: number) {
 <template>
   <main class="products-view">
     <header class="products-header">
-      <h1>Productos</h1>
+      <h1>{{ t('nav.products') }}</h1>
       <div class="products-header-actions">
         <RouterLink
           to="/products/trash"
           class="btn"
         >
-          Ver papelera
+          {{ t('common.viewTrash') }}
         </RouterLink>
         <button
           type="button"
           class="btn btn--primary"
           @click="openCreateModal"
         >
-          Agregar producto
+          {{ t('products.addProduct') }}
         </button>
       </div>
     </header>
@@ -116,23 +118,23 @@ function goToPage(page: number) {
       <input
         :value="productsStore.searchQuery"
         type="search"
-        placeholder="Buscar por nombre…"
-        aria-label="Buscar productos por nombre"
+        :placeholder="t('products.searchPlaceholder')"
+        :aria-label="t('products.searchAriaLabel')"
         @input="productsStore.searchQuery = ($event.target as HTMLInputElement).value"
       >
       <select
-        aria-label="Filtrar por categoría"
+        :aria-label="t('products.filterAriaLabel')"
         @change="onCategoryFilterChange"
       >
         <option value="">
-          Todas las categorías
+          {{ t('products.allCategories') }}
         </option>
         <option
           v-for="value in PRODUCT_CATEGORIES"
           :key="value"
           :value="value"
         >
-          {{ PRODUCT_CATEGORY_LABELS[value] }}
+          {{ t(PRODUCT_CATEGORY_I18N_KEYS[value]) }}
         </option>
       </select>
     </div>
@@ -160,8 +162,8 @@ function goToPage(page: number) {
 
     <EmptyState
       v-else-if="productsStore.loadError"
-      title="No se pudieron cargar los productos"
-      message="Ocurrió un error al conectar con el servidor. Intentá de nuevo."
+      :title="t('products.loadErrorTitle')"
+      :message="t('common.genericErrorRetry')"
     >
       <template #action>
         <button
@@ -169,15 +171,15 @@ function goToPage(page: number) {
           class="btn"
           @click="retryLoad"
         >
-          Reintentar
+          {{ t('common.retry') }}
         </button>
       </template>
     </EmptyState>
 
     <EmptyState
       v-else-if="productsStore.filteredItems.length === 0 && !isFiltered"
-      title="Aún no tenés productos"
-      message="Agregá tu primer producto para empezar a llevar tu inventario."
+      :title="t('products.emptyTitle')"
+      :message="t('products.emptyMessage')"
     >
       <template #action>
         <button
@@ -185,15 +187,15 @@ function goToPage(page: number) {
           class="btn btn--primary"
           @click="openCreateModal"
         >
-          Agregar tu primer producto
+          {{ t('products.addFirst') }}
         </button>
       </template>
     </EmptyState>
 
     <EmptyState
       v-else-if="productsStore.filteredItems.length === 0 && isFiltered"
-      title="Sin resultados"
-      message="No encontramos productos que coincidan con el filtro o la búsqueda actual."
+      :title="t('products.noResultsTitle')"
+      :message="t('products.noResultsMessage')"
     />
 
     <template v-else>
@@ -214,16 +216,16 @@ function goToPage(page: number) {
           :disabled="productsStore.page <= 1"
           @click="goToPage(productsStore.page - 1)"
         >
-          Anterior
+          {{ t('products.prevPage') }}
         </button>
-        <span>Página {{ productsStore.page }}</span>
+        <span>{{ t('products.pageLabel', { page: productsStore.page }) }}</span>
         <button
           type="button"
           class="btn"
           :disabled="!productsStore.hasMorePages"
           @click="goToPage(productsStore.page + 1)"
         >
-          Siguiente
+          {{ t('products.nextPage') }}
         </button>
       </div>
     </template>

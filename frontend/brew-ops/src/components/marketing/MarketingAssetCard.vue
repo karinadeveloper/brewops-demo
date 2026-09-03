@@ -1,9 +1,12 @@
 <script setup lang="ts">
 // Presentational only, mirroring ProductListItem's split between data and
 // display — MarketingView owns fetching/state, this only renders one card.
+import { useI18n } from 'vue-i18n'
 import type { MarketingAsset } from '../../stores/marketing'
 import StatusBadge from '../shared/StatusBadge.vue'
-import { MARKETING_ASSET_TYPE_LABELS } from '../../utils/marketingAssetType'
+import { MARKETING_ASSET_TYPE_I18N_KEYS } from '../../utils/marketingAssetType'
+
+const { t } = useI18n()
 
 defineProps<{ asset: MarketingAsset }>()
 defineEmits<{ delete: [asset: MarketingAsset] }>()
@@ -28,7 +31,7 @@ const dateFormatter = new Intl.DateTimeFormat('es-MX', {
       </p>
       <div class="asset-meta">
         <StatusBadge
-          :label="MARKETING_ASSET_TYPE_LABELS[asset.type]"
+          :label="t(MARKETING_ASSET_TYPE_I18N_KEYS[asset.type])"
           :variant="asset.type === 'PROMOTION' ? 'warning' : 'neutral'"
         />
         <span class="asset-date">{{ dateFormatter.format(new Date(asset.created_at)) }}</span>
@@ -39,7 +42,7 @@ const dateFormatter = new Intl.DateTimeFormat('es-MX', {
       class="asset-delete"
       @click="$emit('delete', asset)"
     >
-      Eliminar
+      {{ t('common.delete') }}
     </button>
   </li>
 </template>

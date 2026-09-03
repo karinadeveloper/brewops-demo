@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useApi, type ApiError } from '../../composables/useApi'
 import { useProductsStore, type Product, type ProductCategory, type ProductInput } from '../../stores/products'
 import { centsToPesos, pesosToCents } from '../../utils/money'
-import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_LABELS } from '../../utils/productCategory'
+import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_I18N_KEYS } from '../../utils/productCategory'
 import {
   hasFormErrors,
   validateProductForm,
@@ -21,6 +22,7 @@ const emit = defineEmits<{
   saved: [product: Product]
 }>()
 
+const { t } = useI18n()
 const productsStore = useProductsStore()
 
 const name = ref(props.product?.name ?? '')
@@ -70,8 +72,7 @@ async function uploadImage(file: File) {
     const response = await postForm<{ url: string }>('/uploads/image', formData)
     imageUrl.value = response.url
   } catch {
-    uploadError.value =
-      'No se pudo subir la imagen. Verificá que sea un archivo JPEG, PNG o WebP e intentá de nuevo.'
+    uploadError.value = t('productForm.uploadError')
   } finally {
     isUploadingImage.value = false
   }
@@ -128,11 +129,10 @@ async function handleSubmit() {
       // conflict that won't resolve itself. Refresh the underlying list in
       // the background and replace the Save action with just a Close
       // button — see the template below.
-      conflictMessage.value =
-        'Este producto fue modificado por otra sesión, recargá para ver los cambios más recientes.'
+      conflictMessage.value = t('productForm.conflictMessage')
       void productsStore.fetchProducts(productsStore.page)
     } else {
-      saveError.value = 'No se pudo guardar el producto. Intentá de nuevo.'
+      saveError.value = t('productForm.saveError')
     }
   } finally {
     isSaving.value = false
@@ -151,7 +151,7 @@ async function handleSubmit() {
       role="dialog"
       aria-modal="true"
     >
-      <h2>{{ mode === 'edit' ? 'Editar producto' : 'Agregar producto' }}</h2>
+      <h2>{{ mode === 'edit' ? t('productForm.titleEdit') : t('products.addProduct') }}</h2>
 
       <template v-if="conflictMessage">
         <p
@@ -166,7 +166,7 @@ async function handleSubmit() {
             class="btn"
             @click="$emit('close')"
           >
-            Cerrar
+            {{ t('common.close') }}
           </button>
         </div>
       </template>
@@ -185,7 +185,7 @@ async function handleSubmit() {
         </p>
 
         <label class="field">
-          <span>Nombre</span>
+          <span>{{ t('common.name') }}</span>
           <input
             v-model="name"
             type="text"
@@ -198,7 +198,7 @@ async function handleSubmit() {
         </label>
 
         <label class="field">
-          <span>Categoría</span>
+          <span>{{ t('productForm.category') }}</span>
           <select
             v-model="category"
             :disabled="isSaving"
@@ -208,13 +208,13 @@ async function handleSubmit() {
               :key="value"
               :value="value"
             >
-              {{ PRODUCT_CATEGORY_LABELS[value] }}
+              {{ t(PRODUCT_CATEGORY_I18N_KEYS[value]) }}
             </option>
           </select>
         </label>
 
         <label class="field">
-          <span>Precio de venta (MXN)</span>
+          <span>{{ t('productForm.salePrice') }}</span>
           <input
             v-model.number="salePricePesos"
             type="number"
@@ -229,7 +229,7 @@ async function handleSubmit() {
         </label>
 
         <label class="field">
-          <span>Costo (MXN)</span>
+          <span>{{ t('productForm.cost') }}</span>
           <input
             v-model.number="costPesos"
             type="number"
@@ -244,7 +244,7 @@ async function handleSubmit() {
         </label>
 
         <label class="field">
-          <span>Stock actual</span>
+          <span>{{ t('productForm.currentStock') }}</span>
           <input
             v-model.number="currentStock"
             type="number"
@@ -259,7 +259,7 @@ async function handleSubmit() {
         </label>
 
         <label class="field">
-          <span>Stock mínimo</span>
+          <span>{{ t('productForm.minStock') }}</span>
           <input
             v-model.number="minStock"
             type="number"
@@ -274,7 +274,7 @@ async function handleSubmit() {
         </label>
 
         <label class="field">
-          <span>Imagen</span>
+          <span>{{ t('common.image') }}</span>
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"
@@ -285,14 +285,14 @@ async function handleSubmit() {
         <img
           v-if="previewUrl"
           :src="previewUrl"
-          alt="Vista previa"
+          :alt="t('common.imagePreviewAlt')"
           class="image-preview"
         >
         <p
           v-if="isUploadingImage"
           class="upload-status"
         >
-          Subiendo imagen…
+          {{ t('productForm.uploading') }}
         </p>
         <template v-if="uploadError">
           <p
@@ -306,7 +306,7 @@ async function handleSubmit() {
             class="btn btn--link"
             @click="retryUpload"
           >
-            Reintentar subida
+            {{ t('productForm.retryUpload') }}
           </button>
         </template>
 
@@ -317,14 +317,14 @@ async function handleSubmit() {
             :disabled="isSaving"
             @click="$emit('close')"
           >
-            Cancelar
+            {{ t('common.cancel') }}
           </button>
           <button
             type="submit"
             class="btn btn--primary"
             :disabled="!canSave"
           >
-            {{ isSaving ? 'Guardando…' : mode === 'edit' ? 'Guardar cambios' : 'Crear producto' }}
+            {{ isSaving ? t('productForm.saving') : mode === 'edit' ? t('productForm.saveChanges') : t('productForm.createProduct') }}
           </button>
         </div>
       </form>

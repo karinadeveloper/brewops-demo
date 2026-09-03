@@ -1,0 +1,206 @@
+{
+  "app": {
+    "saleRejectedAlert": "The sale from {date} could not be applied: {message}"
+  },
+  "nav": {
+    "brand": "BrewOps",
+    "openMenu": "Open navigation menu",
+    "mainNav": "Main navigation",
+    "demoBanner": "This is a public demo — data resets periodically and AI usage is limited.",
+    "dashboard": "Dashboard",
+    "pos": "Point of sale",
+    "salesHistory": "Sales history",
+    "products": "Products",
+    "marketing": "Marketing",
+    "logout": "Log out"
+  },
+  "lang": {
+    "es": "ES",
+    "en": "EN",
+    "ariaLabel": "Select language"
+  },
+  "common": {
+    "retry": "Retry",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "close": "Close",
+    "restore": "Restore",
+    "viewTrash": "View trash",
+    "name": "Name",
+    "image": "Image",
+    "imagePreviewAlt": "Preview",
+    "genericError": "There was an error connecting to the server.",
+    "genericErrorRetry": "There was an error connecting to the server. Try again.",
+    "trashLoadError": "Could not load the trash",
+    "trashEmptyTitle": "The trash is empty",
+    "deletedBy": "by {email}"
+  },
+  "login": {
+    "subtitle": "Sign in to continue",
+    "demoCredentialsPrefix": "Use these credentials to explore:",
+    "sessionExpired": "Your session expired, please sign in again.",
+    "invalidCredentials": "Incorrect email or password.",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "submitting": "Signing in…",
+    "submit": "Sign in"
+  },
+  "dashboard": {
+    "metricsLabel": "Summary metrics",
+    "revenueTitle": "Revenue this period",
+    "salesCountTitle": "Sales this period",
+    "inventoryValueTitle": "Inventory value",
+    "revenueOverTimeLabel": "Revenue over time",
+    "topProductsLabel": "Top-selling products",
+    "chartLoadError": "Could not load the chart",
+    "noSalesInPeriod": "No sales recorded in this period."
+  },
+  "period": {
+    "today": "Today",
+    "last7": "Last 7 days",
+    "month": "This month",
+    "selectorLabel": "Select period"
+  },
+  "lowStock": {
+    "sectionLabel": "Low-stock alerts",
+    "title": "Low stock",
+    "loadError": "Could not load the alerts",
+    "allGoodTitle": "All inventory is at a healthy level",
+    "allGoodMessage": "No product is at or below its minimum stock.",
+    "stockDetail": "Stock: {stock} · minimum: {min}"
+  },
+  "metricCard": {
+    "loadError": "Could not load."
+  },
+  "category": {
+    "juice": "Juice",
+    "water": "Water",
+    "soda": "Soda",
+    "other": "Other"
+  },
+  "marketingType": {
+    "PRODUCT": "Product",
+    "PROMOTION": "Promotion"
+  },
+  "charts": {
+    "revenueLabel": "Revenue"
+  },
+  "products": {
+    "addProduct": "Add product",
+    "searchPlaceholder": "Search by name…",
+    "searchAriaLabel": "Search products by name",
+    "filterAriaLabel": "Filter by category",
+    "allCategories": "All categories",
+    "deleteConfirm": "Delete \"{name}\"? You can restore it later from the trash.",
+    "deleteError": "Could not delete the product. Try again.",
+    "deepLinkError": "Could not open the requested product. Look for it manually in the list.",
+    "loadErrorTitle": "Could not load the products",
+    "emptyTitle": "You don't have any products yet",
+    "emptyMessage": "Add your first product to start tracking your inventory.",
+    "addFirst": "Add your first product",
+    "noResultsTitle": "No results",
+    "noResultsMessage": "We couldn't find any products matching the current filter or search.",
+    "prevPage": "Previous",
+    "nextPage": "Next",
+    "pageLabel": "Page {page}",
+    "lowStockBadge": "Low stock",
+    "stockLabel": "Stock: {stock}"
+  },
+  "productForm": {
+    "titleEdit": "Edit product",
+    "name": "Name",
+    "category": "Category",
+    "salePrice": "Sale price (MXN)",
+    "cost": "Cost (MXN)",
+    "currentStock": "Current stock",
+    "minStock": "Minimum stock",
+    "uploading": "Uploading image…",
+    "uploadError": "Could not upload the image. Make sure it's a JPEG, PNG, or WebP file and try again.",
+    "retryUpload": "Retry upload",
+    "saving": "Saving…",
+    "saveChanges": "Save changes",
+    "createProduct": "Create product",
+    "conflictMessage": "This product was modified by another session — reload to see the latest changes.",
+    "saveError": "Could not save the product. Try again.",
+    "errors": {
+      "name": "Name is required.",
+      "salePrice": "Sale price cannot be negative.",
+      "cost": "Cost cannot be negative.",
+      "currentStock": "Current stock must be a non-negative whole number.",
+      "minStock": "Minimum stock must be a non-negative whole number."
+    }
+  },
+  "productsTrash": {
+    "title": "Products trash",
+    "backToProducts": "Back to products",
+    "emptyMessage": "Products you delete will show up here, and you can restore them at any time.",
+    "restoreError": "Could not restore the product. Try again.",
+    "restoreSuggestion": "Adjust this product's inventory before restoring it.",
+    "deletedOn": "Deleted on {date}"
+  },
+  "pos": {
+    "offlineBanner": "Offline — sales will be saved and synced automatically.",
+    "emptyTitle": "No products available",
+    "emptyMessage": "Add products from the Products section before selling.",
+    "productsAriaLabel": "Products",
+    "saleRegistered": "Sale recorded.",
+    "saleQueuedOffline": "Sale saved. It will sync once the connection is back.",
+    "quantityAriaLabel": "Quantity for {name}",
+    "removeAriaLabel": "Remove {name}"
+  },
+  "cart": {
+    "ariaLabel": "Sale cart",
+    "title": "Cart",
+    "empty": "Add products by tapping the grid.",
+    "total": "Total",
+    "paymentMethodLegend": "Payment method",
+    "cash": "Cash",
+    "transfer": "Transfer",
+    "confirming": "Confirming…",
+    "confirmSale": "Confirm sale"
+  },
+  "salesHistory": {
+    "loadErrorTitle": "Could not load the sales history",
+    "emptyTitle": "No sales yet",
+    "emptyMessage": "Sales you record at the point of sale will show up here.",
+    "staleBanner": "Could not refresh the history from the server — showing locally saved sales.",
+    "pendingBadge": "Pending sync",
+    "errorBadge": "Sync error",
+    "syncedBadge": "Synced",
+    "detailError": "Could not load the sale details.",
+    "paymentMethodLabel": "Payment method: {method}",
+    "businessErrorNote": "This sale wasn't applied due to a business conflict — adjust the inventory or the sale and record it again manually; it isn't retried automatically.",
+    "retrying": "Retrying…"
+  },
+  "marketing": {
+    "addImage": "Add image",
+    "deleteConfirm": "Delete \"{name}\"? You can restore it later from the trash.",
+    "deleteError": "Could not delete the image. Try again.",
+    "loadErrorTitle": "Could not load the images",
+    "emptyTitle": "You don't have any images yet",
+    "emptyMessage": "Upload your first product or promotion image to share on WhatsApp.",
+    "addFirst": "Add your first image"
+  },
+  "marketingForm": {
+    "title": "Upload image",
+    "type": "Type",
+    "nameRequired": "Enter a name.",
+    "fileRequired": "Select an image.",
+    "uploading": "Uploading…",
+    "upload": "Upload image",
+    "saveErrorType": "The image must be a JPEG, PNG, or WebP file.",
+    "saveErrorGeneric": "Could not upload the image. Try again."
+  },
+  "marketingTrash": {
+    "title": "Marketing trash",
+    "backToMarketing": "Back to marketing",
+    "emptyMessage": "Images you delete will show up here, and you can restore them at any time.",
+    "restoreError": "Could not restore the image. Try again.",
+    "deletedOn": "Deleted on {date}"
+  },
+  "sale": {
+    "businessRejectionDefault": "The sale was rejected by the server.",
+    "transportError": "Could not connect to the server."
+  }
+}
