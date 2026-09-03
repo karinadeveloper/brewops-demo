@@ -39,7 +39,6 @@ function handleLogout() {
 
 <template>
   <header class="app-nav-topbar">
-    <span class="app-nav-brand">{{ t('nav.brand') }}</span>
     <button
       type="button"
       class="app-nav-toggle"
@@ -50,6 +49,7 @@ function handleLogout() {
     >
       ☰
     </button>
+    <span class="app-nav-brand">{{ t('nav.brand') }}</span>
   </header>
 
   <nav
