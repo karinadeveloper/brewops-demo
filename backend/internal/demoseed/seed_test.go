@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -30,21 +31,58 @@ func TestDemoProducts_BetweenFifteenAndTwentyWithAtLeastThreeLowStock(t *testing
 	}
 }
 
-func TestDemoProducts_AssignsImagesRoundRobin(t *testing.T) {
+func TestDemoProducts_MatchesImagesByThematicFilename(t *testing.T) {
+	// Arrange: only a subset of real seed-assets filenames is available.
+	images := []string{
+		"http://localhost:8080/local-storage/jugo-naranja.png",
+		"http://localhost:8080/local-storage/jugo-mango.png",
+		"http://localhost:8080/local-storage/refresco-cola.png",
+	}
+
+	// Act
+	products := demoProducts(images)
+
+	// Assert: each product gets exactly the file that matches its own
+	// flavor/drink type — never an arbitrary or round-robin one — and
+	// products whose matching file isn't in the fixture get no image.
+	for _, p := range products {
+		switch p.ImageFile {
+		case "jugo-naranja.png", "jugo-mango.png", "refresco-cola.png":
+			if p.ImageURL == nil || !strings.HasSuffix(*p.ImageURL, p.ImageFile) {
+				t.Errorf("product %q: expected image ending in %q, got %v", p.Name, p.ImageFile, p.ImageURL)
+			}
+		default:
+			if p.ImageURL != nil {
+				t.Errorf("product %q: expected nil image URL (its seed image %q isn't in the fixture), got %q", p.Name, p.ImageFile, *p.ImageURL)
+			}
+		}
+	}
+}
+
+// TestDemoProducts_AllProductsMatchWithFullAssetSet guards against the
+// products.go catalog and backend/seed-assets/ drifting apart — every
+// product's ImageFile must resolve to a real file, or a fresh demo reset
+// would silently leave that product without a picture.
+func TestDemoProducts_AllProductsMatchWithFullAssetSet(t *testing.T) {
 	// Arrange
-	images := []string{"a.png", "b.png"}
+	filenames := []string{
+		"jugo-naranja.png", "jugo-mango.png", "jugo-manzana.png", "jugo-verde.png",
+		"agua-jamaica.png", "agua-horchata.png", "agua-natural.png", "agua-mineral.png",
+		"refresco-cola.png", "refresco-toronja.png", "refresco-manzana.png",
+		"te-limon.png", "cafe-frio.png", "bebida-energetica.png", "licuado-fresa.png", "smoothie-pina.png",
+	}
+	images := make([]string, len(filenames))
+	for i, f := range filenames {
+		images[i] = "http://localhost:8080/local-storage/" + f
+	}
 
 	// Act
 	products := demoProducts(images)
 
 	// Assert
-	for i, p := range products {
+	for _, p := range products {
 		if p.ImageURL == nil {
-			t.Fatalf("product %d: expected an image URL, got nil", i)
-		}
-		want := images[i%len(images)]
-		if *p.ImageURL != want {
-			t.Errorf("product %d: expected image %q, got %q", i, want, *p.ImageURL)
+			t.Errorf("product %q: expected a themed image (file %q) with the full seed-assets set available, got nil", p.Name, p.ImageFile)
 		}
 	}
 }
