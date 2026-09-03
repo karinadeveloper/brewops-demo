@@ -61,15 +61,39 @@ export default defineConfig({
             },
           },
           {
-            // Product images — wherever they're actually hosted (local
-            // disk in dev, GCP Cloud Storage in production), matched by
-            // request type rather than a specific origin/path.
+            // Product/marketing images — wherever they're actually hosted
+            // (local disk in dev, GCP Cloud Storage in production), matched
+            // by request type rather than a specific origin/path.
+            //
+            // StaleWhileRevalidate, not NetworkFirst: unlike the catalog
+            // rule above, this app never WRITES an image and immediately
+            // needs to see its own write reflected — an admin uploads a
+            // product photo through a normal form submit/redirect, not an
+            // in-place swap the same view has to reflect a beat later. So
+            // the staleness risk that ruled out SWR for /products doesn't
+            // apply here, and instant-from-cache paint is worth keeping for
+            // images the viewer has already seen.
+            //
+            // What DOES apply here is the same "must not go stale forever"
+            // lesson: this repo's seed images get replaced in place (same
+            // filename, new bytes — see backend/seed-assets/ and
+            // internal/demoseed) on every demo-reset, so the cache key never
+            // changes and a long-lived entry (previously 30 days) could
+            // outlive many reset cycles, leaving an installed PWA showing a
+            // stale image indefinitely even though a plain browser tab (no
+            // service worker) sees the new one immediately. A short
+            // maxAgeSeconds bounds that: once an entry expires, the next
+            // load refetches and repopulates the cache. 1 hour comfortably
+            // clears within a single demo-reset cycle (Cloud Scheduler runs
+            // it every 6 hours by default — see
+            // terraform/variables.tf's demo_reset_schedule) without paying
+            // a network round-trip on every single image view.
             urlPattern: ({ request }: { request: Request }) => request.destination === 'image',
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'brewops-product-images',
               cacheableResponse: { statuses: [0, 200] },
-              expiration: { maxEntries: 200, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 },
             },
           },
           // Deliberately nothing else: POST/PATCH/DELETE (every write) and
