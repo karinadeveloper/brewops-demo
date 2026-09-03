@@ -264,6 +264,7 @@ function goToPage(page: number) {
 
 .products-filters {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
 }
 
@@ -272,10 +273,15 @@ function goToPage(page: number) {
   padding: var(--space-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+  min-width: 0;
 }
 
 .products-filters input {
-  flex: 1;
+  flex: 1 1 12rem;
+}
+
+.products-filters select {
+  flex: 1 1 10rem;
 }
 
 .products-list {
