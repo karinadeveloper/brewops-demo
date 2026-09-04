@@ -1,5 +1,7 @@
 # BrewOps — public demo
 
+🌐 [English](README.md) | [Español](README.es.md)
+
 ![CI](https://github.com/karinadeveloper/brewops-demo/actions/workflows/ci.yml/badge.svg)
 ![Go Version](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)
 ![Vue Version](https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js&logoColor=white)
