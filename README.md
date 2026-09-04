@@ -1,6 +1,6 @@
 # BrewOps — public demo
 
-![CI](https://github.com/kariaranelly/brew-ops/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/karinadeveloper/brewops-demo/actions/workflows/ci.yml/badge.svg)
 ![Go Version](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)
 ![Vue Version](https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-blue)
@@ -14,14 +14,13 @@ without a stable internet connection.
 
 This repo is a deliberately separated fork of the real product, wired up
 specifically for public, unattended, repeated demoing. It is **not** the
-codebase a paying business runs — see [`CLAUDE.md`](./CLAUDE.md)'s "DEMO
-MODE" section for the exact, itemized list of what differs and why.
+codebase a paying business runs — a scripted data reset, request quotas on
+the AI feature, and a demo-mode login banner exist only here, so this repo
+can sit on the public internet indefinitely without attention or cost risk.
 
 ## Try it
 
-> A live URL will be added here once this demo is deployed (Cloud Run +
-> Supabase + a scheduled reset). Until then, run it locally — see "Local
-> setup" below.
+**Live demo:** [brewops-demo.vercel.app](https://brewops-demo.vercel.app)
 
 **Login credentials:**
 
@@ -31,33 +30,45 @@ MODE" section for the exact, itemized list of what differs and why.
 
 A few things to know before you click around:
 
-- **Data resets periodically.** Whatever products, sales, or images you add
-  or delete will be wiped back to a clean sample state on a schedule — don't
-  treat anything you enter here as persistent.
+- **Data resets every 6 hours**, on a schedule (Cloud Scheduler). Whatever
+  products, sales, or images you add or delete will be wiped back to a clean
+  sample state — don't treat anything you enter here as persistent.
 - **The AI inventory assistant (`/inventory/suggest`) is rate-limited.** Each
   visitor gets a handful of tries per day, and the whole demo shares a small
   daily budget on top of that — both limits exist purely to bound the real
   OpenAI cost of a public, unauthenticated-feeling demo. Every other part of
   the app has no such limit.
+- **Switch languages with the ES/EN toggle** in the top nav. It translates
+  the app chrome (labels, buttons, messages) — the seed data itself (product
+  names, sale history) intentionally stays in Spanish, since it represents a
+  real Mexican business and translating it would undercut that authenticity.
+- **Install it as an app.** BrewOps is an installable PWA — the catalog stays
+  browsable and sales can still be recorded with no connection; everything
+  queued offline syncs automatically once you're back online. See "Offline
+  mode (PWA)" below.
 - Everything else — inventory, sales, the POS flow, low-stock alerts,
-  reports, the marketing gallery, offline mode — behaves exactly like the
-  real product.
+  reports, the marketing gallery — behaves exactly like the real product.
 
 Want the fuller story behind why it's built this way? _(case study link —
 coming soon)_
 
 ## Tech stack
 
+This isn't just code sitting in a repo — it's real infrastructure, deployed
+and running: a live Cloud Run service backed by a real Supabase Postgres
+instance, a Vercel-hosted frontend, and a Terraform-managed Cloud Scheduler
+job that resets demo data automatically.
+
 | Layer | Technology |
 |---|---|
-| Backend | Go + [Fiber](https://gofiber.io/) |
-| Frontend | Vue 3 + Vite + TypeScript |
-| Database | PostgreSQL (Supabase in production) |
+| Backend | Go + [Fiber](https://gofiber.io/), deployed on GCP Cloud Run |
+| Frontend | Vue 3 + Vite + TypeScript, deployed on Vercel |
+| Database | PostgreSQL 16 (Supabase, hosted) |
 | Query layer | [sqlc](https://sqlc.dev/) — type-safe Go generated from raw SQL |
 | Migrations | [golang-migrate](https://github.com/golang-migrate/migrate) |
 | Auth | Manual JWT (`golang-jwt/jwt/v5`) |
-| Image storage | GCP Cloud Storage |
-| Hosting | GCP Cloud Run |
+| Image storage | Local disk in this deploy, GCP Cloud Storage-ready |
+| Scheduled jobs | GCP Cloud Scheduler (automatic demo data reset) |
 | IaC | Terraform |
 | CI/CD | GitHub Actions |
 | Charts | Chart.js via `vue-chartjs` |
@@ -71,10 +82,13 @@ flowchart LR
         PWA["Vue 3 PWA\n(installed on phone)"]
     end
 
+    subgraph Vercel
+        FE["Frontend build\nstatic + SSR-free Vue 3"]
+    end
+
     subgraph GCP
         CR["Cloud Run\nGo + Fiber API"]
-        CS["Cloud Storage\nproduct & marketing images"]
-        Scheduler["Cloud Scheduler\n(demo only: periodic reset)"]
+        Scheduler["Cloud Scheduler\n(every 6h: demo data reset)"]
     end
 
     subgraph Supabase
@@ -83,12 +97,12 @@ flowchart LR
 
     OpenAI["OpenAI API\ngpt-4o-mini"]
 
+    PWA -- "loads app from" --> FE
     PWA -- "HTTPS /api/v1" --> CR
     CR -- "SQL (pgx)" --> PG
-    CR -- "signed URLs" --> CS
     PWA -- "cached catalog,\nIndexedDB PENDING_SYNC sales" --> PWA
     CR -- "natural language\ninventory parsing" --> OpenAI
-    Scheduler -. "POST /admin/demo-reset\n(shared-secret header)" .-> CR
+    Scheduler -. "triggers periodic reset" .-> CR
 ```
 
 ## Local setup
@@ -110,8 +124,8 @@ cp frontend/brew-ops/.env.example frontend/brew-ops/.env
 
 Fill in the values you need locally — the defaults work as-is for Postgres
 running via `docker-compose`. See each `.env.example` for what every
-variable does, including the `DEMO_*`/`VITE_DEMO_MODE` ones this repo adds —
-see `CLAUDE.md`'s "DEMO MODE" section.
+variable does, including the `DEMO_*`/`VITE_DEMO_MODE` ones this repo adds
+on top of the real product's configuration.
 
 ### 2. Database
 
@@ -170,8 +184,7 @@ offline fallback), and sales recorded offline are queued in IndexedDB as
 `PENDING_SYNC` until connectivity returns. A sale that fails to sync for
 network reasons is retried; a sale that syncs but is rejected by business
 rules (e.g. someone else already sold the last unit) is surfaced to the user
-instead of being silently dropped or force-applied. See `CLAUDE.md` for the
-full sync UX contract.
+instead of being silently dropped or force-applied.
 
 ### Installing the PWA locally
 
@@ -214,6 +227,19 @@ cd frontend/brew-ops && pnpm run lint && pnpm run build && pnpm run test
 # postgres); the backend and a production frontend build+preview are started
 # automatically. See e2e/playwright.config.ts's backend env override for the
 # CORS_ALLOWED_ORIGINS value it uses. Deep coverage on inventory/stock/sales,
-# basic coverage on login/reports, per CLAUDE.md's E2E scope.
+# basic coverage on login/reports.
 cd e2e && pnpm install && pnpm exec playwright install chromium && pnpm test
 ```
+
+## Known limitations
+
+Called out deliberately, not discovered later — these are conscious scope
+decisions for a single-admin, small-business tool, not bugs:
+
+- **The dashboard's "sales this period" figure has no dedicated aggregate
+  endpoint.** It's computed by paginating and summing sales client-side
+  within a capped window, which is fine at this business's real scale but
+  wouldn't hold up for a much larger operation.
+- **Revenue reports group by calendar day in the `America/Mexico_City`
+  timezone**, not UTC, so a sale made late at night lands in the correct
+  business day rather than being split across UTC's day boundary.
