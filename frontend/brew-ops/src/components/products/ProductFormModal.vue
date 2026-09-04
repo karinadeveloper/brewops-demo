@@ -125,10 +125,10 @@ async function handleSubmit() {
   } catch (err) {
     const apiError = err as ApiError
     if (apiError.status === 409) {
-      // Per CLAUDE.md: don't leave the user retrying blindly against a
-      // conflict that won't resolve itself. Refresh the underlying list in
-      // the background and replace the Save action with just a Close
-      // button — see the template below.
+      // A 409 means another edit already changed this product's version —
+      // retrying Save would just conflict again. Refresh the underlying
+      // list in the background and replace the Save action with just a
+      // Close button — see the template below.
       conflictMessage.value = t('productForm.conflictMessage')
       void productsStore.fetchProducts(productsStore.page)
     } else {

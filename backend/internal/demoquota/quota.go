@@ -3,9 +3,8 @@
 // per-anonymous-session limit and a limit shared across every visitor for
 // the day. This exists only to bound real OpenAI spend on a public demo with
 // no login wall in front of it — the real BrewOps product has no equivalent
-// concept (a single admin's normal usage is the only limit there). See
-// CLAUDE.md's "DEMO MODE" section. Nothing in this package is reachable
-// unless config.Config.DemoMode is true.
+// concept (a single admin's normal usage is the only limit there). Nothing
+// in this package is reachable unless config.Config.DemoMode is true.
 package demoquota
 
 import (
@@ -48,9 +47,9 @@ func loadMexicoCityLocation() *time.Location {
 }
 
 // UsageDate returns the calendar-day bucket now falls into, in
-// America/Mexico_City — consistent with CLAUDE.md's rule that "a day" for
-// this app always means a calendar day in that timezone, never in UTC or
-// the host's local time.
+// America/Mexico_City — "a day" for this app always means a calendar day in
+// that timezone, never in UTC or the host's local time, consistent with how
+// revenue reports bucket sales by day.
 func UsageDate(now time.Time) time.Time {
 	local := now.In(mexicoCityLocation)
 	return time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, time.UTC)

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-// Demo-only (see CLAUDE.md's "DEMO MODE" section) — plain text toggle,
-// deliberately never a flag icon: a flag represents a country, not a
-// language, and both Spanish and English are spoken across many countries.
+// Demo-only — plain text toggle, deliberately never a flag icon: a flag
+// represents a country, not a language, and both Spanish and English are
+// spoken across many countries.
 import { useI18n } from 'vue-i18n'
 import { useLocale, type Locale } from '../../composables/useLocale'
 

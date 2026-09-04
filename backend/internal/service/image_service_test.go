@@ -94,8 +94,7 @@ func newTestPNG(t *testing.T, width, height int) []byte {
 // simulateOversizedUpload pads a small, valid PNG with trailing zero bytes
 // so its total byte length exceeds 15MB without needing to actually encode
 // a huge image — image/png's decoder stops at the IEND chunk and never
-// looks at what comes after, so decoding is still fast and correct. This
-// is what CLAUDE.md's Paso 6 means by a file that "simula" being >15MB.
+// looks at what comes after, so decoding is still fast and correct.
 func simulateOversizedUpload(t *testing.T) []byte {
 	t.Helper()
 	small := newTestPNG(t, 50, 50)

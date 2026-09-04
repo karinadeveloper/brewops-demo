@@ -12,10 +12,10 @@ import (
 // DemoResetTokenHeader carries the shared secret POST
 // /api/v1/admin/demo-reset requires instead of a normal JWT — the caller is
 // an external trigger (Cloud Scheduler) with no user session to present a
-// bearer token for. Demo-only — see CLAUDE.md's "DEMO MODE" section; this
-// route is only ever registered when config.Config.DemoMode is true (see
-// cmd/server/main.go), so a request against a non-demo deployment gets a
-// plain 404 rather than reaching this handler at all.
+// bearer token for. Demo-only; this route is only ever registered when
+// config.Config.DemoMode is true (see cmd/server/main.go), so a request
+// against a non-demo deployment gets a plain 404 rather than reaching this
+// handler at all.
 const DemoResetTokenHeader = "X-Demo-Reset-Token"
 
 // DemoHandler exposes POST /api/v1/admin/demo-reset.

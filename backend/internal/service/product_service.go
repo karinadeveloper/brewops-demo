@@ -22,8 +22,8 @@ func NewProductService(products domain.ProductRepository) *ProductService {
 }
 
 // validatePricing is the single source of truth for the "no negative
-// prices/stock" rule — pure, deterministic, and the target of 100% test
-// coverage per CLAUDE.md's testing standard for calculation functions.
+// prices/stock" rule — pure, deterministic, and exhaustively tested, as
+// required for any price/inventory calculation function in this project.
 func validatePricing(salePriceCents, costCents int64, currentStock, minStock int32) error {
 	if salePriceCents < 0 || costCents < 0 {
 		return domain.ErrInvalidPrice
@@ -144,11 +144,14 @@ func (s *ProductService) ListTrash(ctx context.Context) ([]domain.TrashedProduct
 	return s.products.ListTrash(ctx)
 }
 
-// Restore re-checks current_stock >= 0 before clearing deleted_at/deleted_by
-// — see CLAUDE.md's "Soft delete & audit trail" section. If the check fails,
+// Restore re-checks current_stock >= 0 before clearing deleted_at/deleted_by.
+// This guards against the case (which shouldn't be able to happen, but is
+// defended against anyway) where an inventory movement altered stock while
+// the product was soft-deleted, leaving it in an invalid state that would
+// otherwise silently reappear in the active catalog. If the check fails,
 // domain.ErrInvalidRestoreState is returned wrapping the current stock value
-// so the caller can surface a clear, actionable message instead of a
-// generic failure.
+// so the caller can surface a clear, actionable message ("adjust inventory
+// first") instead of a generic failure.
 func (s *ProductService) Restore(ctx context.Context, id uuid.UUID) (*domain.Product, error) {
 	p, err := s.products.GetTrashedByID(ctx, id)
 	if err != nil {

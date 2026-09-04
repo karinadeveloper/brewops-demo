@@ -28,8 +28,8 @@ type uploadImageResponse struct {
 
 // readImageUpload extracts the "image" multipart field and sniffs its real
 // Content-Type from the bytes (via http.DetectContentType) rather than
-// trusting the client-supplied header — CLAUDE.md's "Content-Type is
-// actually an image" validation has to hold against a spoofed header too.
+// trusting the client-supplied header, so the "Content-Type is actually an
+// image" validation holds against a spoofed header too.
 func readImageUpload(c *fiber.Ctx) (data []byte, contentType string, err error) {
 	fileHeader, err := c.FormFile("image")
 	if err != nil {

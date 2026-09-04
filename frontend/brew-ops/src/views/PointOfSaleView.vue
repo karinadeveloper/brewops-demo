@@ -69,7 +69,7 @@ async function confirmSale() {
   // survives a lost response and every retry of this same sale (online
   // fetch failure re-queued below, or a later "Reintentar") carries the
   // same key. The backend uses it to detect and no-op a duplicate attempt
-  // instead of recording the sale twice. See CLAUDE.md's Business rules.
+  // instead of recording the sale twice.
   const idempotencyKey = crypto.randomUUID()
 
   submitError.value = ''

@@ -67,9 +67,9 @@ export const useProductsStore = defineStore('products', {
   }),
 
   getters: {
-    // The client-side text search CLAUDE.md calls for — filters what's
-    // already loaded, no new endpoint. Category filtering itself is sent
-    // to the backend as a query param (fetchProducts), not duplicated here.
+    // Client-side text search — filters what's already loaded, no new
+    // endpoint. Category filtering itself is sent to the backend as a
+    // query param (fetchProducts), not duplicated here.
     filteredItems(state): Product[] {
       const query = state.searchQuery.trim().toLowerCase()
       if (!query) {

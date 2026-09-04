@@ -63,11 +63,10 @@ func run() error {
 
 	app := fiber.New(fiber.Config{
 		// Fiber's default BodyLimit is 4MB, which would silently reject
-		// exactly the >15MB uploads CLAUDE.md's image scheme says the
-		// backend must accept and optimize rather than reject. This is a
-		// technical safety ceiling against unbounded memory use, not a
-		// business-rule rejection — no legitimate phone photo gets close
-		// to it.
+		// exactly the >15MB uploads the image pipeline is meant to accept
+		// and optimize server-side rather than reject. This is a technical
+		// safety ceiling against unbounded memory use, not a business-rule
+		// rejection — no legitimate phone photo gets close to it.
 		BodyLimit: 50 * 1024 * 1024,
 	})
 	app.Use(logger.New())
@@ -84,8 +83,9 @@ func run() error {
 
 	// General rate-limit tier: applies to all of /api/v1, generous enough to
 	// never bother a single admin, strict enough to catch a runaway
-	// loop/bot before it burns through Cloud Run's free-tier quota — see
-	// CLAUDE.md's "Rate limiting" section.
+	// loop/bot before it burns through Cloud Run's free-tier quota. A
+	// separate, much stricter tier guards the AI endpoint below, since that
+	// one costs real money per call regardless of server load.
 	app.Use("/api/v1", limiter.New(limiter.Config{
 		Max:        100,
 		Expiration: time.Minute,
@@ -106,7 +106,7 @@ func run() error {
 }
 
 // localStorageDir is where LocalDiskStorageClient writes uploaded files —
-// see CLAUDE.md's "no active GCP billing account yet" note. Gitignored.
+// used until a GCP billing account and bucket are set up. Gitignored.
 const localStorageDir = "./local-storage"
 
 // newStorageClient selects the image storage backend from
@@ -182,11 +182,10 @@ func registerRoutes(app *fiber.App, cfg *config.Config, pool *pgxpool.Pool, stor
 
 	// AI rate-limit tier: a much stricter, independent limit than the
 	// general tier, because every call here costs real money via the
-	// OpenAI API regardless of server load — see CLAUDE.md's "Rate
-	// limiting" section. 5/min (not the real product's 10/min) — this repo
-	// is always the public demo, so a tighter per-IP ceiling is a
-	// permanent, unconditional defense-in-depth layer here, not something
-	// gated by DEMO_MODE — see CLAUDE.md's "DEMO MODE" section.
+	// OpenAI API regardless of server load. 5/min (not the real product's
+	// 10/min) — this repo is always the public demo, so a tighter per-IP
+	// ceiling is a permanent, unconditional defense-in-depth layer here,
+	// not something gated by DEMO_MODE.
 	suggestMiddlewares := []fiber.Handler{appmiddleware.Auth(jwtSecret), limiter.New(limiter.Config{
 		Max:        5,
 		Expiration: time.Minute,
@@ -197,8 +196,7 @@ func registerRoutes(app *fiber.App, cfg *config.Config, pool *pgxpool.Pool, stor
 
 	// Demo-only two-tier AI usage quota (per-session + global daily caps) —
 	// only wired up when DEMO_MODE=true. The real product applies no such
-	// quota; a single admin's normal usage is the only limit there. See
-	// CLAUDE.md's "DEMO MODE" section.
+	// quota; a single admin's normal usage is the only limit there.
 	if cfg.DemoMode {
 		quotaChecker := demoquota.NewChecker(demoquota.NewPostgresStore(pool))
 		suggestMiddlewares = append(suggestMiddlewares,
@@ -236,7 +234,7 @@ func registerRoutes(app *fiber.App, cfg *config.Config, pool *pgxpool.Pool, stor
 	// Demo-only reset endpoint — deliberately not registered at all unless
 	// DEMO_MODE=true, so a request against a non-demo deployment gets
 	// Fiber's plain unmatched-route 404 instead of a handler that reveals
-	// the route exists at all. See CLAUDE.md's "DEMO MODE" section.
+	// the route exists at all.
 	if cfg.DemoMode {
 		demoService := service.NewDemoService(pool, demoseed.Options{
 			AdminEmail:      cfg.DemoAdminEmail,

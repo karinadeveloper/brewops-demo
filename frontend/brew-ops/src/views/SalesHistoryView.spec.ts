@@ -108,10 +108,10 @@ describe('SalesHistoryView', () => {
     await waitFor(() => expect(screen.queryByText('Error de sincronización')).not.toBeInTheDocument())
   })
 
-  // Found via the E2E offline suite (Session 9): a failed network fetch of
-  // confirmed sales used to hide the whole view behind a full-page error,
-  // silently taking locally-queued PENDING_SYNC sales down with it — the
-  // opposite of the resilience CLAUDE.md's offline story promises.
+  // Found via the E2E offline suite: a failed network fetch of confirmed
+  // sales used to hide the whole view behind a full-page error, silently
+  // taking locally-queued PENDING_SYNC sales down with it — exactly the
+  // failure mode offline support is supposed to prevent.
   it('a failed fetch of confirmed sales still shows locally-queued pending sales, not a full-page error', async () => {
     // Arrange
     getMock.mockRejectedValueOnce({ status: 500, message: 'server error' })

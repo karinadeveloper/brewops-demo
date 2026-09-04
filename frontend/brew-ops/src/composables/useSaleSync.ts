@@ -51,8 +51,8 @@ async function syncOne(sale: PendingSale, onBusinessRejection?: (sale: PendingSa
     const apiError = err as Partial<ApiError>
     if (typeof apiError.status === 'number') {
       // A real HTTP response came back — the backend rejected this sale on
-      // business grounds (e.g. insufficient stock, per CLAUDE.md's Sync UX
-      // contract). Never auto-retried: the user must decide what to do.
+      // business grounds (e.g. insufficient stock). Never auto-retried: the
+      // user must decide what to do.
       const message = apiError.message || i18n.global.t('sale.businessRejectionDefault')
       await updatePendingSale({ ...sale, status: 'SYNC_ERROR', errorKind: 'business', errorMessage: message })
       onBusinessRejection?.(sale, message)

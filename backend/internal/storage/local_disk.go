@@ -18,7 +18,7 @@ import (
 // route (see cmd/server/main.go's app.Static registration) so the URLs it
 // returns are fetchable exactly like a real GCS public URL would be. This
 // is the default backend — it exists so image upload work isn't blocked on
-// having an active GCP billing account (see CLAUDE.md's Session 4 notes).
+// having an active GCP billing account set up.
 type LocalDiskStorageClient struct {
 	dir       string
 	publicURL string

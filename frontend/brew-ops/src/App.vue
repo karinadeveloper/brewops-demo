@@ -17,12 +17,12 @@ const dateFormatter = new Intl.DateTimeFormat('es-MX', {
 })
 
 useSaleSync((sale, message) => {
-  // Per CLAUDE.md's Sync UX contract: a business rejection needs a clear,
-  // visible alert, since it can happen entirely in the background (the
-  // user may not be looking at the sales history when connectivity
-  // returns). window.alert is blocking and guaranteed visible regardless
-  // of the current view — a toast/notification system would be a nicer
-  // future upgrade, but none exists in this codebase yet.
+  // A business rejection (e.g. insufficient stock) needs a clear, visible
+  // alert, since it can happen entirely in the background — the user may
+  // not be looking at the sales history when connectivity returns.
+  // window.alert is blocking and guaranteed visible regardless of the
+  // current view — a toast/notification system would be a nicer future
+  // upgrade, but none exists in this codebase yet.
   window.alert(
     t('app.saleRejectedAlert', { date: dateFormatter.format(new Date(sale.createdAt)), message }),
   )

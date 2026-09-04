@@ -13,9 +13,9 @@ import (
 	"github.com/kariaranelly/brew-ops/backend/internal/domain"
 )
 
-// aiRequestTimeout bounds every call to the external AI provider —
-// CLAUDE.md requires a clear error instead of a hung request when OpenAI is
-// slow or unresponsive.
+// aiRequestTimeout bounds every call to the external AI provider, so a
+// clear error surfaces instead of a hung request when OpenAI is slow or
+// unresponsive.
 const aiRequestTimeout = 15 * time.Second
 
 // productMatchThreshold is the minimum similarity score (0-1) a product

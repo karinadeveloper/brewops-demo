@@ -10,9 +10,8 @@ import (
 
 // DemoService wraps demoseed.Reset so DemoHandler never touches the
 // database directly, consistent with this package's "handlers delegate to
-// services" layering rule. Demo-only — see CLAUDE.md's "DEMO MODE" section;
-// only constructed in cmd/server/main.go when config.Config.DemoMode is
-// true.
+// services" layering rule. Demo-only; only constructed in
+// cmd/server/main.go when config.Config.DemoMode is true.
 type DemoService struct {
 	pool *pgxpool.Pool
 	opts demoseed.Options

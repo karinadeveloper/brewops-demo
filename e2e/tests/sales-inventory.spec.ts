@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test'
 import { registerAndLoginTestUser, createTestProduct, loginViaUI } from './helpers'
 
-// Deep coverage per CLAUDE.md's E2E scope: Inventory/Stock/Sales is the
-// core of the system. Runs against a real backend + Postgres that also
+// Deep coverage: Inventory/Stock/Sales is the core of the system. Runs
+// against a real backend + Postgres that also
 // accumulates data from other test runs and manual verification sessions,
 // so every assertion below is scoped to a uniquely-named product/row
 // rather than a page-wide text match that could collide with unrelated
@@ -78,8 +78,8 @@ test.describe('Sales and inventory — deep coverage', () => {
     await loginViaUI(page, user)
 
     // Give the product a real movement (a sale) before deleting it — this
-    // is the "product with associated movements" case CLAUDE.md's soft
-    // delete rule is about: history must survive the delete.
+    // is the "product with associated movements" case soft delete exists
+    // for: history must survive the delete, never a hard DELETE FROM.
     await page.getByRole('link', { name: 'Punto de venta' }).click()
     await page.getByRole('button', { name: new RegExp(product.name) }).click()
     await page.getByRole('button', { name: 'Confirmar venta' }).click()
@@ -97,10 +97,10 @@ test.describe('Sales and inventory — deep coverage', () => {
     await expect(page.locator('li', { hasText: product.name })).toBeVisible()
 
     // The negative-stock-on-restore rejection is a defended-against
-    // invariant that CLAUDE.md documents as genuinely unreachable through
-    // normal API usage (no endpoint can alter a soft-deleted product's
-    // stock) — a prior session confirmed this by direct API attempt. So
-    // this test verifies the frontend's handling of that 409 contract via
+    // invariant that's genuinely unreachable through normal API usage — no
+    // endpoint can alter a soft-deleted product's stock, so the backend's
+    // own re-validation on restore never actually fails in practice. This
+    // test verifies the frontend's handling of that 409 contract via
     // network interception instead of trying to force the real condition,
     // which would mean fighting an invariant the app deliberately upholds.
     await page.route(`**/api/v1/products/${product.id}/restore`, (route) =>

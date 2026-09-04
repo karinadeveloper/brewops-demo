@@ -1,6 +1,6 @@
-// Money is always cents (int) over the wire and in state — see CLAUDE.md's
-// "Money handling" section. Conversion to/from pesos happens only here, at
-// the UI boundary (form inputs and display), never inside store logic.
+// Money is always cents (int) over the wire and in state, never a float.
+// Conversion to/from pesos happens only here, at the UI boundary (form
+// inputs and display), never inside store logic.
 
 const PESOS_FORMATTER = new Intl.NumberFormat('es-MX', {
   style: 'currency',

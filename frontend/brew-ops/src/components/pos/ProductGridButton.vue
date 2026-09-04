@@ -48,7 +48,7 @@ defineEmits<{
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   text-align: center;
-  /* Large touch target, per CLAUDE.md's cash-register-style grid. */
+  /* Large touch target for fast tapping on a phone/tablet at the register. */
   min-height: 6.5rem;
 }
 

@@ -21,9 +21,8 @@ func NewSaleService(sales domain.SaleRepository) *SaleService {
 }
 
 // computeTotalCents sums quantity*unit_price_cents across every item.
-// Pure and exhaustively tested per CLAUDE.md's 100%-coverage rule — this is
-// the only place total_cents is ever computed; a client-submitted total is
-// never read or trusted.
+// Pure and exhaustively tested — this is the only place total_cents is
+// ever computed; a client-submitted total is never read or trusted.
 func computeTotalCents(items []domain.SaleItemInput) int64 {
 	var total int64
 	for _, item := range items {
@@ -60,7 +59,10 @@ type CreateSaleInput struct {
 	// IdempotencyKey is optional. The frontend always sends one (generated
 	// when the user confirms the sale, reused across retries), but it's not
 	// required at the validation level for compatibility with any other
-	// caller of this endpoint. See CLAUDE.md's Business rules.
+	// caller of this endpoint. A repeated key is treated as a no-op that
+	// returns the already-created sale, which is what prevents a duplicate
+	// sale when a request succeeds server-side but its response is lost
+	// before reaching the client — a real risk in the offline sync flow.
 	IdempotencyKey *uuid.UUID
 }
 

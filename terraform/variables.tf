@@ -82,7 +82,7 @@ variable "app_env" {
 }
 
 variable "demo_mode" {
-  description = "Enables demo-only surface area (demo-reset endpoint, AI usage quotas). See CLAUDE.md's DEMO MODE section."
+  description = "Enables demo-only surface area (demo-reset endpoint, AI usage quotas) that has no equivalent in the real product."
   type        = bool
   default     = true
 }

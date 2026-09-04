@@ -9,8 +9,8 @@ import (
 
 // DemoSessionCookie is the name of the anonymous session cookie used to
 // attribute POST /inventory/suggest calls to a visitor for demoquota's
-// per-session limit. Demo-only — see CLAUDE.md's "DEMO MODE" section; this
-// middleware is only ever registered when config.Config.DemoMode is true.
+// per-session limit. Demo-only; this middleware is only ever registered
+// when config.Config.DemoMode is true.
 const DemoSessionCookie = "demo_session_id"
 
 // LocalsDemoSessionID is the fiber.Ctx.Locals key DemoSession stores the

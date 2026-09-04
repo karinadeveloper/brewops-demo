@@ -25,8 +25,7 @@ func NewReportService(reports domain.ReportRepository) *ReportService {
 }
 
 // resolveTopProductsLimit clamps the requested limit into [1, 100],
-// defaulting to 10 per CLAUDE.md's top-products spec. Pure and exhaustively
-// tested.
+// defaulting to 10 when none is requested. Pure and exhaustively tested.
 func resolveTopProductsLimit(requested int32) int32 {
 	if requested <= 0 {
 		return defaultTopProductsLimit

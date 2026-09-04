@@ -16,15 +16,16 @@ import (
 	"github.com/kariaranelly/brew-ops/backend/internal/domain"
 )
 
-// model is gpt-4o-mini per CLAUDE.md's AI feature section: cheap, more
-// than enough reasoning for parsing short Spanish inventory phrases.
+// model is gpt-4o-mini: cheap, more than enough reasoning for parsing
+// short Spanish inventory phrases.
 const model = "gpt-4o-mini"
 
 const chatCompletionsURL = "https://api.openai.com/v1/chat/completions"
 
 // systemPrompt instructs the model to extract structured inventory
-// movements as JSON — CLAUDE.md asks for OpenAI's structured JSON output
-// mode rather than parsing free-form text.
+// movements as JSON. Uses OpenAI's structured JSON output mode rather than
+// parsing free-form text, since the caller only ever needs the parsed
+// shape, never prose.
 const systemPrompt = `You are an inventory assistant for a small Mexican juice/beverage business. Extract inventory movements from the user's Spanish text and respond with ONLY a JSON object of this exact shape:
 
 {"movements": [{"product_name": "string, the product as mentioned in the text", "type": "PURCHASE | ADJUSTMENT_IN | ADJUSTMENT_OUT", "quantity": integer > 0, "unit_cost_cents": integer >= 0, the price per unit in Mexican peso CENTS (multiply pesos by 100)}]}
@@ -34,9 +35,7 @@ Use PURCHASE for buying new stock, ADJUSTMENT_IN for stock found/corrected upwar
 // OpenAIClient implements domain.InventorySuggestionClient against
 // OpenAI's Chat Completions API using net/http directly — this call is
 // simple enough (one request, one response) that pulling in the full
-// OpenAI SDK isn't warranted, consistent with this project's preference
-// for hand-rolled fundamentals over framework dependencies (see CLAUDE.md's
-// "manual JWT" rationale).
+// OpenAI SDK isn't warranted.
 type OpenAIClient struct {
 	apiKey     string
 	httpClient *http.Client
@@ -60,8 +59,9 @@ type chatCompletionResponse struct {
 // Suggest sends naturalLanguageText to gpt-4o-mini and returns the raw JSON
 // string it replied with (expected to match systemPrompt's schema — parsing
 // that is the caller's responsibility). ctx's deadline governs the whole
-// call; the caller (service) is expected to apply CLAUDE.md's ~15s AI-call
-// timeout via context.WithTimeout.
+// call; the caller (service) applies a 15s timeout via context.WithTimeout
+// so a slow or unresponsive OpenAI call surfaces as a clear error instead
+// of hanging the request.
 //
 // Never logs the request or response body, and never logs c.apiKey — every
 // error returned here is a generic domain.ErrAISuggestionFailed wrap with

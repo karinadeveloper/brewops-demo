@@ -8,10 +8,9 @@ const USER_STORAGE_KEY = 'brewops_user'
 
 export interface AuthUser {
   email: string
-  // BrewOps has no multi-tenant roles — every account is ADMIN (see
-  // CLAUDE.md's User domain model). POST /auth/login doesn't return a user
-  // profile, so this is set locally from the login form rather than
-  // fetched from the API.
+  // BrewOps has no multi-tenant roles — every account is ADMIN.
+  // POST /auth/login doesn't return a user profile, so this is set locally
+  // from the login form rather than fetched from the API.
   role: 'ADMIN'
 }
 

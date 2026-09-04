@@ -32,11 +32,11 @@ async function handleRestore(id: string) {
   } catch (err) {
     const apiError = err as ApiError
     if (apiError.status === 409) {
-      // Per CLAUDE.md's restore-revalidation rule: the backend's message
-      // is already descriptive ("cannot restore: current stock is -5,
-      // adjust inventory first") — shown verbatim, plus our own suggested
-      // next step. No link to the inventory movements view yet since it
-      // doesn't exist as of this session.
+      // The backend re-validates stock on restore and returns an already
+      // descriptive message ("cannot restore: current stock is -5, adjust
+      // inventory first") — shown verbatim, plus our own suggested next
+      // step. No link to the inventory movements view since it doesn't
+      // exist yet.
       restoreErrors[id] = apiError.message
     } else {
       restoreErrors[id] = t('productsTrash.restoreError')

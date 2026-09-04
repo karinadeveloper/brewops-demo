@@ -9,8 +9,8 @@
 // service.DemoService, for the scheduled reset in production) call it
 // rather than duplicating the logic in two places.
 //
-// Demo-only: nothing in this package exists in the real BrewOps product —
-// see CLAUDE.md's "DEMO MODE" section.
+// Demo-only: nothing in this package exists in the real BrewOps product,
+// which has no concept of a scripted data reset.
 package demoseed
 
 import (
@@ -64,7 +64,7 @@ const seedRandSeed = 42
 
 // salesWindow is how far back the generated sales history spreads, so the
 // dashboard's revenue-over-time chart has real shape instead of a flat
-// line — see CLAUDE.md's seed requirements.
+// line.
 const salesWindow = 14 * 24 * time.Hour
 
 // Reset deletes all business data (never the users table) and reinserts a

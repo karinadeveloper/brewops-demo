@@ -1,9 +1,9 @@
 // Period presets for the Dashboard's date-range selector. Boundaries are
 // computed from the caller's local clock (in practice America/Mexico_City,
-// since BrewOps is single-market) — this is the frontend, so building
-// period boundaries from local "today" is exactly the kind of timezone
-// handling CLAUDE.md reserves for this layer. The resulting from/to are
-// still correct UTC instants once sent to the backend.
+// since BrewOps is single-market) — this is the frontend, so it's the
+// right layer to reason about local "today" boundaries; the backend only
+// ever reasons in UTC. The resulting from/to are still correct UTC
+// instants once sent to the backend.
 
 export type Period = 'today' | 'last7' | 'month'
 
@@ -11,8 +11,7 @@ export const PERIOD_VALUES: Period[] = ['today', 'last7', 'month']
 
 // i18n keys (see src/locales/*.json's "period" namespace) rather than
 // literal labels — PeriodSelector.vue resolves these through useI18n so the
-// selector's chrome text follows the ES/EN toggle. See CLAUDE.md's DEMO
-// MODE section.
+// selector's chrome text follows the ES/EN toggle.
 export const PERIOD_I18N_KEYS: Record<Period, string> = {
   today: 'period.today',
   last7: 'period.last7',

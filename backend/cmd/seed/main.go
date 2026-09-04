@@ -5,8 +5,8 @@
 // it again simply leaves the database in the same clean state, with no
 // accumulating rows.
 //
-// This command exists only for this demo repo — see CLAUDE.md's "DEMO
-// MODE" section. It shares its reset logic with POST
+// This command exists only for this demo repo — the real product has no
+// concept of a scripted data reset. It shares its reset logic with POST
 // /api/v1/admin/demo-reset via internal/demoseed.Reset; neither duplicates
 // the other's logic.
 //

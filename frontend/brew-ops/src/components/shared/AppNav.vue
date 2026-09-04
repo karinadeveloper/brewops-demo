@@ -9,10 +9,9 @@ const { t } = useI18n()
 const authStore = useAuthStore()
 const isMobileMenuOpen = ref(false)
 
-// Demo-only — see CLAUDE.md's "DEMO MODE" section. Shown across every
-// authenticated view (AppNav is always mounted alongside them — see
-// App.vue) so a visitor is never more than a glance away from knowing this
-// is a public demo, not the real product.
+// Demo-only. Shown across every authenticated view (AppNav is always
+// mounted alongside them — see App.vue) so a visitor is never more than a
+// glance away from knowing this is a public demo, not the real product.
 const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 
 // Trash views (products, marketing) are deliberately not top-level links

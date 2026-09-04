@@ -27,17 +27,16 @@ type productSeed struct {
 	TargetStock int32
 	// ImageFile is the seed-assets filename thematically matched to this
 	// product by flavor/drink type (e.g. "jugo-naranja.png" for an orange
-	// juice, never assigned by list position) — see backend/seed-assets/
-	// and CLAUDE.md's DEMO MODE section.
+	// juice, never assigned by list position) — see backend/seed-assets/.
 	ImageFile string
 	ImageURL  *string
 }
 
-// demoProducts returns the fixed 19-product catalog (juice/water/soda/other
-// per CLAUDE.md's domain model), matching each product to its ImageFile by
-// exact filename whenever that file is present among imageURLs. Prices are
-// plausible MXN retail figures for a small juice/beverage business, stored
-// in cents per this project's money-handling rule.
+// demoProducts returns the fixed 19-product catalog (juice/water/soda/other),
+// matching each product to its ImageFile by exact filename whenever that
+// file is present among imageURLs. Prices are plausible MXN retail figures
+// for a small juice/beverage business, stored in cents per this project's
+// money-handling rule.
 func demoProducts(imageURLs []string) []productSeed {
 	products := []productSeed{
 		{Name: "Jugo de Naranja 1L", Category: "juice", SalePriceCents: 4500, CostCents: 2600, MinStock: 10, TargetStock: 42, ImageFile: "jugo-naranja.png"},

@@ -1,9 +1,9 @@
 import { i18n } from '../i18n'
 
-// Demo-only (see CLAUDE.md's "DEMO MODE" section) — the app UI chrome's
-// ES/EN toggle. Seed data (product names, sale history) is never affected
-// by this: it always renders in Spanish regardless of the selected locale,
-// since it represents a real Mexican business.
+// Demo-only — the app UI chrome's ES/EN toggle. Seed data (product names,
+// sale history) is never affected by this: it always renders in Spanish
+// regardless of the selected locale, since it represents a real Mexican
+// business and translating it would undercut that authenticity.
 export type Locale = 'es' | 'en'
 
 const STORAGE_KEY = 'brewops-locale'

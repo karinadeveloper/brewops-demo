@@ -79,9 +79,9 @@ export const useDashboardStore = defineStore('dashboard', {
   }),
 
   actions: {
-    // Loads every section once, each independently (a failure in one never
-    // blocks or hides the others — see CLAUDE.md-style per-section error
-    // handling in DashboardView).
+    // Loads every section once, each independently, so a failure in one
+    // (e.g. inventory value) never blocks or hides the others — each
+    // section tracks and surfaces its own loading/error state.
     async loadAll() {
       await Promise.all([this.loadPeriodDependent(), this.loadInventoryValue(), this.loadLowStock()])
     },

@@ -43,11 +43,11 @@ type Config struct {
 	// CORS
 	CORSAllowedOrigins string
 
-	// Demo mode — see CLAUDE.md's "DEMO MODE" section. Everything gated by
-	// this flag (the reset endpoint, the AI usage quotas) is a demo-only
-	// concern that does not exist in the real BrewOps product; it defaults
-	// to false (fail closed) so a misconfigured deployment never accidentally
-	// exposes demo-only surface area.
+	// Demo mode. Everything gated by this flag (the reset endpoint, the AI
+	// usage quotas) is a demo-only concern that does not exist in the real
+	// BrewOps product; it defaults to false (fail closed) so a
+	// misconfigured deployment never accidentally exposes demo-only surface
+	// area.
 	DemoMode bool
 	// Credentials for the single demo admin account. Read here (never
 	// hardcoded) so both cmd/seed and the reset endpoint upsert the exact
@@ -104,9 +104,11 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
-	// 8h access / 30d refresh — see the "JWT token lifetimes" note in
-	// CLAUDE.md's tech stack table for why this differs from the
-	// 15min/7days industry default.
+	// 8h access / 30d refresh — deliberately longer than the 15min/7day
+	// industry default. This is a single-admin app for a small business:
+	// that pattern would add friction without a meaningful security
+	// benefit, and the frontend silently refreshes so the owner never sees
+	// a login screen again unless 30 days pass without use.
 	accessTTL, err := parseDuration("JWT_ACCESS_TOKEN_TTL", "8h")
 	if err != nil {
 		return nil, err

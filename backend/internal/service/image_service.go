@@ -17,13 +17,13 @@ import (
 
 const (
 	// maxImageWidthPixels is the width ceiling applied during server-side
-	// optimization — CLAUDE.md's "Image upload & optimization" section.
+	// optimization.
 	maxImageWidthPixels = 2000
 	// optimizedJPEGQuality is the recompression quality used whenever the
 	// backend re-encodes an oversized image.
 	optimizedJPEGQuality = 85
-	// serverOptimizeThresholdBytes is CLAUDE.md's ">15MB" tier: above this,
-	// the backend optimizes as defense-in-depth even though the frontend
+	// serverOptimizeThresholdBytes is the ">15MB" tier: above this, the
+	// backend optimizes as defense-in-depth even though the frontend
 	// should already have compressed anything over 5MB client-side.
 	serverOptimizeThresholdBytes = 15 * 1024 * 1024
 )
@@ -47,7 +47,7 @@ func NewImageService(storage domain.StorageClient) *ImageService {
 	return &ImageService{storage: storage}
 }
 
-// validateImageContentType is CLAUDE.md's only hard validation, at any
+// validateImageContentType is the only hard validation applied at any
 // size: pure and exhaustively tested.
 func validateImageContentType(contentType string) (extension string, err error) {
 	ext, ok := allowedImageContentTypes[contentType]
@@ -58,15 +58,15 @@ func validateImageContentType(contentType string) (extension string, err error) 
 }
 
 // needsServerSideOptimization reports whether the backend must apply its
-// own resize/recompress pass, per CLAUDE.md's ">15MB" tier.
+// own resize/recompress pass, i.e. data crossed the ">15MB" tier.
 func needsServerSideOptimization(sizeBytes int) bool {
 	return sizeBytes > serverOptimizeThresholdBytes
 }
 
 // optimizeImage decodes data (JPEG/PNG/WebP), downsamples it to at most
 // maxImageWidthPixels wide (preserving aspect ratio) if wider than that,
-// and always re-encodes the result as JPEG at ~85 quality — regardless of
-// the original format, per CLAUDE.md's optimization scheme.
+// and always re-encodes the result as JPEG at ~85 quality, regardless of
+// the original format.
 func optimizeImage(data []byte) ([]byte, error) {
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
@@ -108,7 +108,7 @@ func resizeToMaxWidth(img image.Image, maxWidth int) image.Image {
 }
 
 // Upload validates the content type, optimizes server-side when data
-// exceeds CLAUDE.md's 15MB threshold, and stores the result under a unique
+// exceeds the 15MB threshold, and stores the result under a unique
 // filename. It never rejects an upload for being large — only for not
 // being one of the allowed image types.
 func (s *ImageService) Upload(ctx context.Context, data []byte, contentType string) (string, error) {

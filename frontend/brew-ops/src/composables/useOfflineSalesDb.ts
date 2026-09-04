@@ -12,8 +12,8 @@ export type PendingSaleStatus = 'PENDING_SYNC' | 'SYNC_ERROR'
 // "business": the backend responded and rejected the sale on business
 // grounds (e.g. insufficient stock) — never auto-retried, the user must
 // resolve it. "transport": the request never got a response at all
-// (network error/timeout) — safe to retry blindly. See CLAUDE.md's Sync
-// UX contract.
+// (network error/timeout) — safe to retry blindly. These need different UI
+// treatment and different retry semantics, so they're never conflated.
 export type SyncErrorKind = 'business' | 'transport'
 
 export interface PendingSaleItem {

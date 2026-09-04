@@ -14,7 +14,6 @@ import (
 // deliberately not sqlc-generated like the rest of internal/repository, so
 // every demo-only query stays physically isolated in this package instead
 // of mixed into the schema the real product's repository layer would reuse.
-// See CLAUDE.md's "DEMO MODE" section.
 type PostgresStore struct {
 	pool *pgxpool.Pool
 }

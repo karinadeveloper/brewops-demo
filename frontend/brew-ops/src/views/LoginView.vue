@@ -21,11 +21,11 @@ const errorMessage = ref('')
 // at this page load.
 const sessionExpired = route.query.reason === 'expired'
 
-// Demo-only — see CLAUDE.md's "DEMO MODE" section. These credentials are
-// hardcoded display text, not fetched from the backend: they only need to
-// match whatever DEMO_ADMIN_EMAIL/DEMO_ADMIN_PASSWORD the deployment was
-// seeded with (see backend/.env.example), which a human keeps in sync by
-// hand since it changes rarely, if ever.
+// Demo-only. These credentials are hardcoded display text, not fetched
+// from the backend: they only need to match whatever
+// DEMO_ADMIN_EMAIL/DEMO_ADMIN_PASSWORD the deployment was seeded with (see
+// backend/.env.example), which a human keeps in sync by hand since it
+// changes rarely, if ever.
 const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 
 function redirectTarget(): string {

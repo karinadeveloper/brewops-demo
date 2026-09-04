@@ -10,7 +10,8 @@ import (
 )
 
 // AuthHandler exposes /api/v1/auth/*. isDevelopment gates Register, which
-// must 404 outside development — see CLAUDE.md's API endpoints section.
+// must 404 outside development — it exists only to seed a local dev account
+// and has no place being reachable in a deployed environment.
 type AuthHandler struct {
 	auth          *service.AuthService
 	isDevelopment bool

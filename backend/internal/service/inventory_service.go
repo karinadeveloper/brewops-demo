@@ -24,8 +24,8 @@ func NewInventoryService(movements domain.InventoryMovementRepository) *Inventor
 // manualMovementDelta computes the signed current_stock change for a manual
 // inventory movement, and rejects anything that isn't a valid manual type.
 // SALE is deliberately excluded here — it is never created through this
-// path, only via the sales flow. Pure and exhaustively tested per
-// CLAUDE.md's 100%-coverage rule for stock calculation logic.
+// path, only via the sales flow. Pure and exhaustively tested, as required
+// for any stock calculation logic in this project.
 func manualMovementDelta(movementType string, quantity int32) (int32, error) {
 	if quantity <= 0 {
 		return 0, domain.ErrInvalidQuantity

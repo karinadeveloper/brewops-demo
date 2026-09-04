@@ -24,8 +24,9 @@ type TokenPair struct {
 }
 
 // AuthService implements login, refresh, and registration against a
-// domain.UserRepository. Token lifetimes come from CLAUDE.md's documented
-// decision: 8h access / 30d refresh, appropriate for a single-admin app.
+// domain.UserRepository. Token lifetimes default to 8h access / 30d
+// refresh — a deliberately long-lived pair appropriate for a single-admin
+// app, where the usual 15min/7day pattern would only add login friction.
 type AuthService struct {
 	users      domain.UserRepository
 	jwtSecret  []byte

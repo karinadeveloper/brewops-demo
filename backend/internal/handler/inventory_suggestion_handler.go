@@ -28,9 +28,8 @@ type suggestRequest struct {
 
 // maxSuggestTextLength bounds the natural-language input to
 // /inventory/suggest before it ever reaches OpenAI — a defense-in-depth
-// measure alongside this repo's demo AI usage quotas (see CLAUDE.md's "DEMO
-// MODE" section) against a single oversized request burning an outsized
-// amount of tokens.
+// measure, alongside this repo's demo AI usage quotas, against a single
+// oversized request burning an outsized amount of tokens.
 const maxSuggestTextLength = 500
 
 type suggestedMovementResponse struct {

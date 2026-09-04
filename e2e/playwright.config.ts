@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// Runs against a real backend + Postgres, not mocks — see CLAUDE.md's E2E
-// scope: deep coverage on inventory/stock/sales, basic on login/reports.
+// Runs against a real backend + Postgres, not mocks — deep coverage on
+// inventory/stock/sales (the core of the system), basic coverage on
+// login/reports (lower-risk, standard CRUD/read flows).
 // Postgres itself isn't started here (docker compose up -d postgres, from
 // the repo root, must already be running) since Playwright's webServer
 // option only knows how to wait on an HTTP URL, not a DB healthcheck.

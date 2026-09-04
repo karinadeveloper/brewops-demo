@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test'
 import { registerAndLoginTestUser } from './helpers'
 
-// Basic coverage per CLAUDE.md's E2E scope: Login and Reports are
-// lower-risk, standard CRUD/read flows — happy path plus 1-2 error cases.
+// Basic coverage: Login and Reports are lower-risk, standard CRUD/read
+// flows — happy path plus 1-2 error cases.
 test.describe('Login and reports — basic coverage', () => {
   test('a successful login lands on the dashboard', async ({ page, request }) => {
     const user = await registerAndLoginTestUser(request)

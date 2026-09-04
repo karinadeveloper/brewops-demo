@@ -6,8 +6,8 @@ import (
 )
 
 // ErrInvalidImageContentType is returned when an upload's Content-Type is
-// not one of the allowed image types — the only hard validation in
-// CLAUDE.md's image upload scheme; size never causes a rejection.
+// not one of the allowed image types — the only hard validation in the
+// image upload pipeline; size never causes a rejection, only optimization.
 var ErrInvalidImageContentType = errors.New("file must be a JPEG, PNG, or WebP image")
 
 // StorageClient is the persistence boundary for uploaded binary assets

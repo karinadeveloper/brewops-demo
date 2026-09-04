@@ -19,10 +19,11 @@ COPY --from=build /out/server /server
 # instead of failing: see copySeedAssets's doc comment in internal/demoseed.
 COPY seed-assets /seed-assets
 
-# Defense-in-depth after the report-grouping timezone bug (see CLAUDE.md's
-# timestamp rule): pins a predictable floor for any future code that
-# decodes/formats a time.Time without explicitly normalizing it, instead of
-# silently inheriting whatever timezone the host happens to run in.
+# All timestamps are stored and reasoned about in UTC (conversion to
+# America/Mexico_City happens only in the frontend). Pinning the container's
+# timezone gives any future code that decodes/formats a time.Time without
+# explicitly normalizing it a predictable UTC floor, instead of silently
+# inheriting whatever timezone the host happens to run in.
 ENV TZ=UTC
 
 EXPOSE 8080

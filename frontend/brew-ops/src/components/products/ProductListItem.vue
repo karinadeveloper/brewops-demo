@@ -129,8 +129,8 @@ const isLowStock = props.product.current_stock <= props.product.min_stock
   border-color: hsla(4, 75%, 50%, 0.3);
 }
 
-/* Compact thumbnail on the right of the row, per CLAUDE.md's "many
-   products at a glance" list layout — not a large card grid. */
+/* Compact thumbnail keeps the row dense so many products fit at a glance —
+   this is a scannable list, not a large card grid. */
 .product-thumb {
   flex-shrink: 0;
   width: 3rem;

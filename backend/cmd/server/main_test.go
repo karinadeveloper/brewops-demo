@@ -58,7 +58,7 @@ func TestRegisterRoutes_DemoModeFalse_ResetEndpointNotRegistered(t *testing.T) {
 	resp, err := app.Test(req)
 
 	// Assert — a plain unmatched-route 404, not a handler that reveals the
-	// route exists, per CLAUDE.md's "DEMO MODE" section.
+	// route exists.
 	if err != nil {
 		t.Fatalf("app.Test: %v", err)
 	}

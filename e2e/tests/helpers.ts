@@ -9,7 +9,7 @@ export interface TestUser {
   token: string
 }
 
-// POST /auth/register is dev-only (see CLAUDE.md's API endpoints) — used
+// POST /auth/register is dev-only (404s outside APP_ENV=development) — used
 // here purely to give each test run its own isolated user, so tests never
 // collide with data left behind by a previous run or another test file.
 export async function registerAndLoginTestUser(request: APIRequestContext): Promise<TestUser> {

@@ -4,7 +4,7 @@ import { ref } from 'vue'
 // the same ping loop, rather than each component starting its own
 // interval. This is deliberately the ONLY connectivity source in the app —
 // the POS and sale-sync logic must consume this, never re-implement their
-// own online/offline detection. See CLAUDE.md's "Connectivity detection".
+// own online/offline detection.
 const DEFAULT_PING_INTERVAL_MS = 20_000
 const PING_TIMEOUT_MS = 3_000
 
@@ -12,9 +12,9 @@ const isOnline = ref(typeof navigator === 'undefined' ? true : navigator.onLine)
 let started = false
 let intervalId: ReturnType<typeof setInterval> | null = null
 
-// /health lives outside /api/v1 (see CLAUDE.md's API endpoints section) —
-// its URL is derived from VITE_API_BASE_URL rather than hardcoding a
-// second base URL to keep in sync.
+// /health lives outside /api/v1 — its URL is derived from
+// VITE_API_BASE_URL rather than hardcoding a second base URL to keep in
+// sync.
 function healthUrl(): string {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string
   return `${apiBaseUrl.replace(/\/api\/v1\/?$/, '')}/health`

@@ -92,8 +92,8 @@ func containsProduct(products []domain.Product, id uuid.UUID) bool {
 }
 
 // TestLowStockFlow_SaleReducesStockToOrBelowMinStock_AppearsInLowStock covers
-// CLAUDE.md's Session 3 "Paso 3" requirement end-to-end: a real sale,
-// through the real stock-decrement path, must be reflected immediately by
+// the low-stock alert requirement end-to-end: a real sale, through the real
+// stock-decrement path, must be reflected immediately by
 // GET /products/low-stock.
 func TestLowStockFlow_SaleReducesStockToOrBelowMinStock_AppearsInLowStock(t *testing.T) {
 	// Arrange
@@ -141,8 +141,8 @@ func TestLowStockFlow_SaleReducesStockToOrBelowMinStock_AppearsInLowStock(t *tes
 }
 
 // TestSaleCreate_InsufficientStockItem_RollsBackEverything proves the
-// atomicity CLAUDE.md requires: when one item in a multi-item sale fails
-// its stock check, NOTHING is persisted — not the sale, not any sale_item,
+// atomicity a multi-item sale requires: when one item fails its stock
+// check, NOTHING is persisted — not the sale, not any sale_item,
 // not any inventory_movement, and no product's current_stock changes,
 // including the OTHER item that had enough stock on its own. A mock-based
 // service test can assert the returned error, but only a real transactional
@@ -211,8 +211,9 @@ func TestSaleCreate_InsufficientStockItem_RollsBackEverything(t *testing.T) {
 }
 
 // TestSaleCreate_ProductVersionChangesMidTransaction_ReturnsOptimisticLockConflict
-// deterministically forces the exact race CLAUDE.md describes — no timing
-// luck involved. A raw transaction reads the product's version and applies
+// deterministically forces the exact concurrent-edit race the
+// optimistic-concurrency version column exists to catch — no timing luck
+// involved. A raw transaction reads the product's version and applies
 // (but does not yet commit) its own stock decrement, exactly like the first
 // half of SaleRepository.Create's version-guarded update. A concurrent real
 // sale for the same product reads the same still-current version (Postgres
@@ -386,8 +387,10 @@ func TestSaleCreate_RepeatedIdempotencyKey_ReturnsExistingSaleWithoutDuplicateRo
 }
 
 // TestSaleCreate_ConcurrentSameIdempotencyKey_OnlyOneInsertsTheOtherRecoversExistingSale
-// covers the race CLAUDE.md describes: two requests carrying the same key
-// arriving almost simultaneously. The unique index is the final arbiter —
+// covers the race the idempotency key exists to guard against: two requests
+// carrying the same key arriving almost simultaneously (a real risk in the
+// offline sync flow, where a response can be lost after the server already
+// committed). The unique index is the final arbiter —
 // exactly one goroutine's INSERT succeeds, and the loser's unique-violation
 // is caught and turned into a lookup of the winner's row, never a
 // propagated DB error.
